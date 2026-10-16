@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Server DBA Cockpit | İstemci Taraflı & Güvenli Veritabanı Kokpiti</title>
+  <meta name="description" content="Microsoft SQL Server (MSSQL) DBA'leri için güvenli, zero-knowledge, tamamen tarayıcıda çalışan yedekleme, kullanıcı, tuning, DMV teşhis ve konfigürasyon kokpiti.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            sqlred: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              200: '#fecdd3',
+              300: '#fda4af',
+              400: '#fb7185',
+              500: '#e11d48',
+              600: '#cc292b', // Microsoft SQL Red
+              700: '#be123c',
+              800: '#9f1239',
+              900: '#881337',
+              950: '#4c0519',
+            },
+            sqlamber: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color-scheme: dark;
+    }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    [v-cloak] { display: none; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sqlred-600 selection:text-white">
+
+<div id="app" v-cloak class="flex flex-col min-h-screen">
+  
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Brand / Logo -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sqlred-700 via-sqlred-600 to-sqlamber-500 p-0.5 flex items-center justify-center shadow-lg shadow-sqlred-600/25">
+            <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+              <svg class="w-6 h-6 text-sqlred-500" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 2c4.42 0 8 1.43 8 2.5S16.42 9 12 9s-8-1.43-8-2.5S7.58 4 12 4zm8 5.68c-.68.42-1.57.77-2.61 1.04-1.47.38-3.34.61-5.39.61s-3.92-.23-5.39-.61C5.57 10.45 4.68 10.1 4 9.68V8.12c1.78 1.15 4.69 1.88 8 1.88s6.22-.73 8-1.88v1.56zm0 5c-.68.42-1.57.77-2.61 1.04-1.47.38-3.34.61-5.39.61s-3.92-.23-5.39-.61C5.57 15.45 4.68 15.1 4 14.68V13.12c1.78 1.15 4.69 1.88 8 1.88s6.22-.73 8-1.88v1.56zm0 2.5c0 1.07-3.58 2.5-8 2.5s-8-1.43-8-2.5V18.12c1.78 1.15 4.69 1.88 8 1.88s6.22-.73 8-1.88v1.56z"/>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-sqlamber-400 bg-clip-text text-transparent">SQL Server DBA Cockpit</span>
+              <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-sqlred-600/20 text-sqlred-400 border border-sqlred-600/30">v3.0 MSSQL PRO</span>
+            </div>
+            <p class="text-xs text-slate-400 flex items-center space-x-1.5">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>100% İstemci Taraflı & Sıfır Veri Sızıntısı (Zero-Knowledge)</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Global Quick Actions -->
+        <div class="flex items-center space-x-3">
+          <button @click="showCheatSheet = true" class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors">
+            <svg class="w-4 h-4 text-sqlamber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            <span>Hızlı Başvuru (Cheat Sheet)</span>
+          </button>
+          <button @click="resetCurrentModule" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700/60 hover:border-rose-800/60 transition-colors" title="Geçerli sekmedeki form alanlarını sıfırla">
+            <span>Sıfırla</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <div class="bg-slate-900 border-t border-slate-800/60 overflow-x-auto scrollbar-none">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 py-1.5">
+        <button 
+          v-for="t in tabs" 
+          :key="t.id"
+          @click="activeTab = t.id"
+          :class="[
+            'flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-150',
+            activeTab === t.id 
+              ? 'bg-gradient-to-r from-sqlred-600 to-sqlred-700 text-white shadow-md shadow-sqlred-700/30' 
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          ]"
+        >
+          <span>{{ t.icon }}</span>
+          <span>{{ t.label }}</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Body -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 1: BACKUP & RESTORE & BCP SİHİRBAZI                                -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'backup'" class="space-y-6">
+      <!-- Sub-tabs -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex space-x-2">
+          <button 
+            @click="backupSubTab = 'backup'" 
+            :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', backupSubTab === 'backup' ? 'bg-sqlred-600 text-white' : 'text-slate-400 hover:bg-slate-800']"
+          >
+            📦 Backup Sihirbazı (T-SQL)
+          </button>
+          <button 
+            @click="backupSubTab = 'restore'" 
+            :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', backupSubTab === 'restore' ? 'bg-sqlred-600 text-white' : 'text-slate-400 hover:bg-slate-800']"
+          >
+            🔄 Restore & WITH MOVE Sihirbazı
+          </button>
+          <button 
+            @click="backupSubTab = 'bcp'" 
+            :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', backupSubTab === 'bcp' ? 'bg-sqlred-600 text-white' : 'text-slate-400 hover:bg-slate-800']"
+          >
+            ⚡ BCP Komut Üretici (CLI)
+          </button>
+        </div>
+        <span class="text-xs text-slate-400 hidden sm:inline">MSSQL 2014, 2016, 2019, 2022+ & Azure SQL Managed Instance Uyumlu</span>
+      </div>
+
+      <!-- 1.1 BACKUP SUB-TAB -->
+      <div v-if="backupSubTab === 'backup'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Form Inputs -->
+        <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-sqlred-500"></span>
+              <span>Yedekleme Parametreleri</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Full, Differential veya Transaction Log yedeği oluşturun.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Veritabanı Adı</label>
+              <input v-model="bk.database" type="text" placeholder="AdventureWorks2022" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Yedek Türü</label>
+              <select v-model="bk.type" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500">
+                <option value="FULL">FULL Backup (Tam Veritabanı)</option>
+                <option value="DIFF">DIFFERENTIAL (Fark Yedeği)</option>
+                <option value="LOG">TRANSACTION LOG (.trn)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Hedef Disk Dosya Yolu</label>
+            <div class="relative">
+              <input v-model="bk.path" type="text" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+              <button @click="autoGenerateBackupPath" class="absolute right-2 top-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">Tarih Ekle</button>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Dosya uzantısı Full/Diff için .bak, Log için .trn önerilir.</p>
+          </div>
+
+          <!-- Yedekleme Seçenekleri -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-2">Performans & Güvenlik Parametreleri</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer hover:border-slate-700">
+                <input type="checkbox" v-model="bk.compression" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+                <span class="text-xs text-slate-300">COMPRESSION</span>
+              </label>
+
+              <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer hover:border-slate-700">
+                <input type="checkbox" v-model="bk.checksum" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+                <span class="text-xs text-slate-300">CHECKSUM</span>
+              </label>
+
+              <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer hover:border-slate-700">
+                <input type="checkbox" v-model="bk.copyOnly" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+                <span class="text-xs text-slate-300">COPY_ONLY</span>
+              </label>
+
+              <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer hover:border-slate-700">
+                <input type="checkbox" v-model="bk.init" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+                <span class="text-xs text-slate-300">INIT (Üzerine Yaz)</span>
+              </label>
+
+              <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer hover:border-slate-700">
+                <input type="checkbox" v-model="bk.format" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+                <span class="text-xs text-slate-300">FORMAT</span>
+              </label>
+
+              <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer hover:border-slate-700">
+                <input type="checkbox" v-model="bk.tuneIo" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+                <span class="text-xs text-slate-300">Buffer Tuning (Hızlı I/O)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Stats & Description -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">STATS Yüzdesi</label>
+              <input v-model.number="bk.stats" type="number" min="1" max="50" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Yedek Adı (NAME)</label>
+              <input v-model="bk.backupName" type="text" placeholder="Prod_Full_Backup" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500">
+            </div>
+          </div>
+
+          <!-- DBA Tip -->
+          <div class="bg-amber-950/30 border border-amber-900/60 rounded-xl p-3 text-xs text-amber-300/90 flex items-start space-x-2">
+            <svg class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <strong class="font-semibold text-amber-200">DBA Altın Kuralı (COPY_ONLY):</strong>
+              Canlı ortamda test veya geliştirme için yedek alırken mutlaka <code>COPY_ONLY</code> seçin! Aksi halde differential tabanını bozar veya log zincirini kırarak felaket anında veri kurtarmayı imkansızlaştırabilirsiniz.
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Code -->
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+          <div class="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                  <span class="text-xs font-semibold text-slate-200">Üretilen T-SQL Scripti</span>
+                </div>
+                <div class="flex space-x-2">
+                  <button @click="copyText(generatedBackupSql, 'Yedekleme T-SQL kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5 shadow transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    <span>Kopyala</span>
+                  </button>
+                  <button @click="downloadScript(generatedBackupSql, 'backup_' + bk.database + '.sql')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center space-x-1.5 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>.sql İndir</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-4 relative">
+                <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedBackupSql }}</pre>
+              </div>
+            </div>
+
+            <!-- Verification helper snippet -->
+            <div class="mt-4 pt-4 border-t border-slate-800/80">
+              <span class="text-xs font-semibold text-slate-400 block mb-2">Yedekleme Sonrası Bütünlük Doğrulama (RESTORE VERIFYONLY):</span>
+              <pre class="bg-slate-950 text-amber-300/90 text-xs p-3 rounded-lg font-mono overflow-x-auto border border-slate-800/60">RESTORE VERIFYONLY FROM DISK = N'{{ bk.path }}' WITH CHECKSUM;
+GO</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1.2 RESTORE SUB-TAB -->
+      <div v-if="backupSubTab === 'restore'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-sqlamber-400"></span>
+              <span>Geri Yükleme & WITH MOVE Sihirbazı</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Yedek dosyasını geri yükleyin veya mantıksal dosyaları yeni diske taşıyarak klonlayın.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Hedef Veritabanı Adı</label>
+              <input v-model="rs.targetDb" type="text" placeholder="AdventureWorks_Restored" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Kurtarma Durumu (Recovery State)</label>
+              <select v-model="rs.recoveryState" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500">
+                <option value="RECOVERY">RECOVERY (Erişime Aç - Varsayılan)</option>
+                <option value="NORECOVERY">NORECOVERY (Log Shipping / Ek Yedek Beklemede)</option>
+                <option value="STANDBY">STANDBY (Salt Okunur / Standby Modu)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Yedek Dosyası Kaynak Yolu (FROM DISK)</label>
+            <input v-model="rs.backupPath" type="text" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+          </div>
+
+          <div v-if="rs.recoveryState === 'STANDBY'">
+            <label class="block text-xs font-medium text-amber-300 mb-1">STANDBY Geri Alma Dosyası (Undo File)</label>
+            <input v-model="rs.standbyUndoPath" type="text" placeholder="D:\SQLBackups\undo.ldf" class="w-full bg-slate-950 border border-amber-700/80 rounded-lg px-3 py-2 text-xs text-amber-200 focus:outline-none font-mono">
+          </div>
+
+          <!-- WITH MOVE Dosya Eşleştirmeleri -->
+          <div class="space-y-2 pt-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+                <span>WITH MOVE Dosya Eşleştirmeleri</span>
+                <span class="text-[10px] text-slate-500">(Farklı disk/dizin için şart)</span>
+              </label>
+              <button @click="addMoveFile" class="text-[11px] font-semibold text-sqlred-400 hover:text-sqlred-300 flex items-center space-x-1">
+                <span>+ Dosya Ekle</span>
+              </button>
+            </div>
+
+            <div v-for="(file, idx) in rs.moveFiles" :key="idx" class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Dosya #{{ idx + 1 }} ({{ file.type === 'DATA' ? 'MDF/NDF Veri' : 'LDF Log' }})</span>
+                <div class="flex items-center space-x-2">
+                  <select v-model="file.type" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px]">
+                    <option value="DATA">DATA</option>
+                    <option value="LOG">LOG</option>
+                  </select>
+                  <button v-if="rs.moveFiles.length > 1" @click="removeMoveFile(idx)" class="text-rose-400 hover:text-rose-300">Sil</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <input v-model="file.logicalName" placeholder="Mantıksal Ad (örn: DB_Data)" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 font-mono">
+                </div>
+                <div>
+                  <input v-model="file.physicalPath" placeholder="Yeni Fiziksel Yol (D:\Data\DB.mdf)" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 font-mono">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2.5 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="rs.replace" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+              <span class="text-xs text-slate-300">WITH REPLACE (Mevcut DB'yi Ez)</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2.5 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="rs.checksum" class="rounded bg-slate-900 border-slate-700 text-sqlred-600 focus:ring-sqlred-500">
+              <span class="text-xs text-slate-300">CHECKSUM Doğrula</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Output Code -->
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sqlamber-400"></span>
+                  <span class="text-xs font-semibold text-slate-200">Üretilen RESTORE T-SQL Scripti</span>
+                </div>
+                <div class="flex space-x-2">
+                  <button @click="copyText(generatedRestoreSql, 'Restore scripti kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5 shadow transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    <span>Kopyala</span>
+                  </button>
+                  <button @click="downloadScript(generatedRestoreSql, 'restore_' + rs.targetDb + '.sql')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center space-x-1.5 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>.sql İndir</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedRestoreSql }}</pre>
+              </div>
+            </div>
+
+            <!-- Inspect Logical Names Helper -->
+            <div class="mt-4 pt-4 border-t border-slate-800/80">
+              <span class="text-xs font-semibold text-slate-400 block mb-2">Mantıksal Dosya İsimlerini Bilmiyor musunuz? Bu Komutla Öğrenin:</span>
+              <pre class="bg-slate-950 text-cyan-300/90 text-xs p-3 rounded-lg font-mono overflow-x-auto border border-slate-800/60">RESTORE FILELISTONLY FROM DISK = N'{{ rs.backupPath }}';
+RESTORE HEADERONLY FROM DISK = N'{{ rs.backupPath }}';
+GO</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1.3 BCP SUB-TAB -->
+      <div v-if="backupSubTab === 'bcp'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <span>BCP (Bulk Copy Program) Komut Üretici</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Yüksek performanslı veri dışa aktarma (export) ve içeri aktarma (import) komut satırı aracı.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">İşlem Yönü</label>
+              <select v-model="bcp.direction" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500">
+                <option value="out">out (Tabloyu Dışa Aktar)</option>
+                <option value="queryout">queryout (Sorgu Sonucunu Aktar)</option>
+                <option value="in">in (Dosyayı Tabloya Yükle)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Veri Formatı</label>
+              <select v-model="bcp.format" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500">
+                <option value="-c -t, -r\n">CSV / Karakter (-c -t,)</option>
+                <option value="-c -t\t -r\n">Tab Delimited (-c -t\t)</option>
+                <option value="-c -t| -r\n">Pipe Delimited (-c -t|)</option>
+                <option value="-w">Unicode (-w UTF-16)</option>
+                <option value="-n">Native (-n Hızlı Binary)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Kimlik Doğrulama</label>
+              <select v-model="bcp.auth" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500">
+                <option value="T">Windows Auth (-T)</option>
+                <option value="SQL">SQL Server Auth (-U -P)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Sunucu & Port (-S)</label>
+              <input v-model="bcp.server" placeholder="SRV-SQL01\INSTANCE,1433" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Veritabanı (-d)</label>
+              <input v-model="bcp.database" placeholder="AdventureWorks" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <div v-if="bcp.direction === 'queryout'">
+            <label class="block text-xs font-medium text-slate-300 mb-1">T-SQL Sorgusu</label>
+            <input v-model="bcp.query" placeholder="SELECT Top 100 * FROM Sales.Customer" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+          <div v-else>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Tablo / Şema Adı</label>
+            <input v-model="bcp.table" placeholder="Sales.Customer" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Dosya Yolu (CSV / Dat)</label>
+            <input v-model="bcp.filePath" placeholder="D:\Export\CustomerData.csv" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+
+          <div v-if="bcp.auth === 'SQL'" class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Kullanıcı (-U)</label>
+              <input v-model="bcp.user" placeholder="sa" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Şifre (-P)</label>
+              <input v-model="bcp.password" type="text" placeholder="GüçlüŞifre" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <!-- BCP Seçenekleri -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="bcp.skipHeader" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-[11px] text-slate-300">-F 2 (Header Atla)</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="bcp.keepNulls" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-[11px] text-slate-300">-k (Null Koru)</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="bcp.keepIdentity" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-[11px] text-slate-300">-E (Identity Koru)</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="bcp.utf8" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-[11px] text-slate-300">-C 65001 (UTF-8)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                  <span class="text-xs font-semibold text-slate-200">BCP Komut Satırı Çıktısı</span>
+                </div>
+                <button @click="copyText(generatedBcpCommand, 'BCP komutu kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5 shadow transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                  <span>Kopyala</span>
+                </button>
+              </div>
+
+              <div class="mt-4">
+                <pre class="bg-slate-950 text-cyan-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80 whitespace-pre-wrap break-all">{{ generatedBcpCommand }}</pre>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400">
+              <strong class="text-slate-300">İpucu:</strong> Windows komut isteminde (CMD) veya PowerShell'de doğrudan çalıştırabilirsiniz. Hata çıktısını kaydetmek için otomatik olarak <code>-e err.log</code> parametresi eklenir.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 2: LOGIN, USER & YETKİLENDİRME (SECURITY)                          -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'users'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+        <div class="border-b border-slate-800 pb-3">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-sqlred-500"></span>
+            <span>Server Login & Database User Yetkilendirme</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Sunucu seviyesi login oluşturun, veritabanına eşleyin ve rol/izin atayın.</p>
+        </div>
+
+        <!-- Presets Bar -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Hızlı Rol Şablonları (Presets)</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button 
+              @click="applyRolePreset('readonly')"
+              :class="['px-2.5 py-1.5 rounded-lg text-xs font-medium border text-center transition-colors', rolePreset === 'readonly' ? 'bg-sqlred-600 text-white border-sqlred-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700']"
+            >
+              📖 Read-Only
+            </button>
+            <button 
+              @click="applyRolePreset('readwrite')"
+              :class="['px-2.5 py-1.5 rounded-lg text-xs font-medium border text-center transition-colors', rolePreset === 'readwrite' ? 'bg-sqlred-600 text-white border-sqlred-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700']"
+            >
+              ✍️ Read-Write
+            </button>
+            <button 
+              @click="applyRolePreset('ddladmin')"
+              :class="['px-2.5 py-1.5 rounded-lg text-xs font-medium border text-center transition-colors', rolePreset === 'ddladmin' ? 'bg-sqlred-600 text-white border-sqlred-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700']"
+            >
+              🏗️ DDL Admin
+            </button>
+            <button 
+              @click="applyRolePreset('granular')"
+              :class="['px-2.5 py-1.5 rounded-lg text-xs font-medium border text-center transition-colors', rolePreset === 'granular' ? 'bg-sqlred-600 text-white border-sqlred-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700']"
+            >
+              🎯 Granular Özel
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Login / User Adı</label>
+            <input v-model="sec.username" type="text" placeholder="app_user" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Hedef Veritabanı</label>
+            <input v-model="sec.database" type="text" placeholder="Production_DB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sqlred-500 font-mono">
+          </div>
+        </div>
+
+        <!-- Password Generator with Web Crypto -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-slate-300">Güvenli Şifre (Web Crypto API)</label>
+            <button @click="generateSecurePassword" class="text-[11px] font-semibold text-sqlamber-400 hover:text-sqlamber-300 flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <span>Yeniden Üret</span>
+            </button>
+          </div>
+          <div class="relative">
+            <input v-model="sec.password" type="text" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-amber-200 font-mono focus:outline-none focus:border-sqlred-500">
+            <button @click="copyText(sec.password, 'Şifre kopyalandı!')" class="absolute right-2 top-1.5 px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">Kopyala</button>
+          </div>
+        </div>
+
+        <!-- Security Policies -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+            <input type="checkbox" v-model="sec.checkPolicy" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+            <span class="text-xs text-slate-300">CHECK_POLICY</span>
+          </label>
+          <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+            <input type="checkbox" v-model="sec.checkExpiration" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+            <span class="text-xs text-slate-300">CHECK_EXPIRATION</span>
+          </label>
+          <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+            <input type="checkbox" v-model="sec.mustChange" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+            <span class="text-xs text-slate-300">MUST_CHANGE</span>
+          </label>
+        </div>
+
+        <!-- Granular Permissions Section -->
+        <div v-if="rolePreset === 'granular'" class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs font-semibold text-sqlamber-400 block">Granular (İnce Taneli) Yetki Yapılandırması</span>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Yetki Türü</label>
+              <select v-model="sec.granularPerm" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
+                <option value="EXECUTE">EXECUTE (SP Çalıştırma)</option>
+                <option value="SELECT">SELECT (Sorgulama)</option>
+                <option value="INSERT, UPDATE, DELETE">DML (INSERT, UPDATE, DELETE)</option>
+                <option value="VIEW DEFINITION">VIEW DEFINITION (Kod Görme)</option>
+                <option value="ALTER">ALTER (Nesne Değiştirme)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Hedef Düzey</label>
+              <select v-model="sec.granularTarget" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
+                <option value="OBJECT">OBJECT (Tekil Nesne / SP)</option>
+                <option value="SCHEMA">SCHEMA (Tüm Şema)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Nesne veya Şema Adı</label>
+              <input v-model="sec.granularName" placeholder="dbo.usp_CalculateReport" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+        </div>
+
+        <!-- Server Roles (Optional) -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Sunucu Rolleri (Server Roles - Dikkatli Kullanın)</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <label class="flex items-center space-x-1.5 text-xs text-slate-400">
+              <input type="checkbox" v-model="sec.serverRoles.processadmin" class="rounded bg-slate-950 border-slate-700 text-sqlred-600">
+              <span>processadmin</span>
+            </label>
+            <label class="flex items-center space-x-1.5 text-xs text-slate-400">
+              <input type="checkbox" v-model="sec.serverRoles.securityadmin" class="rounded bg-slate-950 border-slate-700 text-sqlred-600">
+              <span>securityadmin</span>
+            </label>
+            <label class="flex items-center space-x-1.5 text-xs text-slate-400">
+              <input type="checkbox" v-model="sec.serverRoles.dbcreator" class="rounded bg-slate-950 border-slate-700 text-sqlred-600">
+              <span>dbcreator</span>
+            </label>
+            <label class="flex items-center space-x-1.5 text-xs text-rose-400">
+              <input type="checkbox" v-model="sec.serverRoles.sysadmin" class="rounded bg-slate-950 border-slate-700 text-rose-600">
+              <span class="font-bold">sysadmin ⚠️</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Output SQL -->
+      <div class="lg:col-span-6 flex flex-col space-y-4">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-semibold text-slate-200">Üretilen Güvenlik & Yetkilendirme T-SQL</span>
+              </div>
+              <div class="flex space-x-2">
+                <button @click="copyText(generatedSecuritySql, 'Güvenlik scripti kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5 shadow transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                  <span>Kopyala</span>
+                </button>
+                <button @click="downloadScript(generatedSecuritySql, 'create_user_' + sec.username + '.sql')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center space-x-1.5 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  <span>.sql İndir</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedSecuritySql }}</pre>
+            </div>
+          </div>
+
+          <!-- Orphaned User Repair Helper -->
+          <div class="mt-4 pt-4 border-t border-slate-800/80">
+            <span class="text-xs font-semibold text-amber-400 block mb-1">Yetim (Orphaned) User Tespiti & Onarımı (Restore Sonrası SID Uyuşmazlığı):</span>
+            <pre class="bg-slate-950 text-amber-300/90 text-xs p-3 rounded-lg font-mono overflow-x-auto border border-slate-800/60">-- Yetim kullanıcıları tespit et
+USE [{{ sec.database }}];
+SELECT dp.name AS OrphanedUser, dp.type_desc, dp.create_date 
+FROM sys.database_principals dp
+LEFT JOIN sys.server_principals sp ON dp.sid = sp.sid
+WHERE sp.sid IS NULL AND dp.type IN ('S', 'U', 'G') AND dp.name NOT IN ('guest', 'INFORMATION_SCHEMA', 'sys');
+
+-- Eşleşen login ile SID'yi otomatik onar:
+ALTER USER [{{ sec.username }}] WITH LOGIN = [{{ sec.username }}];
+GO</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 3: DATABASE, FILEGROUP & STORAGE YÖNETİMİ                          -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'storage'" class="space-y-6">
+      <div class="flex items-center space-x-2 border-b border-slate-800 pb-3">
+        <button 
+          @click="storageSubTab = 'addfile'" 
+          :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', storageSubTab === 'addfile' ? 'bg-sqlred-600 text-white' : 'text-slate-400 hover:bg-slate-800']"
+        >
+          ➕ Datafile (.ndf) / Logfile (.ldf) Ekle
+        </button>
+        <button 
+          @click="storageSubTab = 'shrink'" 
+          :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', storageSubTab === 'shrink' ? 'bg-sqlred-600 text-white' : 'text-slate-400 hover:bg-slate-800']"
+        >
+          ✂️ DBCC SHRINKFILE & Resize
+        </button>
+        <button 
+          @click="storageSubTab = 'recovery'" 
+          :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', storageSubTab === 'recovery' ? 'bg-sqlred-600 text-white' : 'text-slate-400 hover:bg-slate-800']"
+        >
+          🔄 Recovery Model (FULL / SIMPLE)
+        </button>
+      </div>
+
+      <!-- 3.1 ADD FILE -->
+      <div v-if="storageSubTab === 'addfile'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>Yeni Veri veya Log Dosyası Ekleme</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Genişleyen veritabanları için yeni NVMe/SSD diskte dosya oluşturun.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Veritabanı Adı</label>
+              <input v-model="stFile.database" placeholder="Production_DB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Dosya Türü</label>
+              <select v-model="stFile.fileType" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200">
+                <option value="DATA">DATA Dosyası (.ndf)</option>
+                <option value="LOG">LOG Dosyası (.ldf)</option>
+              </select>
+            </div>
+          </div>
+
+          <div v-if="stFile.fileType === 'DATA'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Filegroup Adı</label>
+              <input v-model="stFile.filegroup" placeholder="PRIMARY" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Mantıksal Ad (NAME)</label>
+              <input v-model="stFile.logicalName" placeholder="Prod_Data_02" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+          <div v-else>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Log Mantıksal Adı (NAME)</label>
+            <input v-model="stFile.logicalName" placeholder="Prod_Log_02" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Fiziksel Dosya Yolu (FILENAME)</label>
+            <input v-model="stFile.physicalPath" placeholder="E:\SQLData\Prod_Data_02.ndf" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Başlangıç Boyutu</label>
+              <input v-model="stFile.size" placeholder="10240MB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Otomatik Büyüme (Growth)</label>
+              <input v-model="stFile.filegrowth" placeholder="1024MB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Maksimum Boyut</label>
+              <input v-model="stFile.maxsize" placeholder="UNLIMITED" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-slate-400">
+            <strong class="text-slate-200">DBA Tavsiyesi:</strong> FILEGROWTH için asla yüzde (%) kullanmayın (örn: %10). Veritabanı 1 TB olduğunda %10 büyüme anında 100 GB büyüme talep eder ve oturumları kilitler. Sabit <code>512MB</code> veya <code>1024MB</code> kullanın.
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <span class="text-xs font-semibold text-slate-200">ALTER DATABASE ADD FILE Scripti</span>
+                <button @click="copyText(generatedAddFileSql, 'Add file scripti kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5">
+                  <span>Kopyala</span>
+                </button>
+              </div>
+              <div class="mt-4">
+                <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedAddFileSql }}</pre>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400">
+              <span class="font-semibold text-slate-300 block mb-1">Mevcut Dosya Boyutlarını İnceleme Sorgusu:</span>
+              <pre class="bg-slate-950 text-slate-300 p-2.5 rounded font-mono text-[11px] overflow-x-auto">USE [{{ stFile.database }}];
+SELECT name, physical_name, size * 8 / 1024 AS SizeMB, growth, is_percent_growth 
+FROM sys.database_files;
+GO</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.2 SHRINK -->
+      <div v-if="storageSubTab === 'shrink'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+              <span>DBCC SHRINKFILE & Veri Dosyası Boyutlandırma</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Büyük veri silme sonrası disk alanını işletim sistemine geri verin.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Veritabanı Adı</label>
+              <input v-model="shrink.database" placeholder="Production_DB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Mantıksal Dosya Adı (veya file_id)</label>
+              <input v-model="shrink.fileName" placeholder="Prod_Data_01" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Küçültme Modu</label>
+              <select v-model="shrink.mode" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200">
+                <option value="TARGET">Hedef Boyuta Küçült (MB)</option>
+                <option value="TRUNCATEONLY">TRUNCATEONLY (Sadece Boş Alanı İade Et)</option>
+                <option value="EMPTYFILE">EMPTYFILE (Dosyayı Boşalt ve Taşı)</option>
+              </select>
+            </div>
+            <div v-if="shrink.mode === 'TARGET'">
+              <label class="block text-xs font-medium text-slate-300 mb-1">Hedef Boyut (MB)</label>
+              <input v-model.number="shrink.targetSizeMb" type="number" placeholder="5000" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <!-- Red Warning Box -->
+          <div class="bg-rose-950/40 border border-rose-900/80 rounded-xl p-4 text-xs text-rose-200/90 space-y-2">
+            <div class="flex items-center space-x-2 text-rose-300 font-bold">
+              <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              <span>DİKKAT: Üretim (Prod) Ortamında Rutin Shrink Yapmayın!</span>
+            </div>
+            <p>Standart DBCC SHRINKFILE, sayfaları dosyanın sonundan başına taşırken tüm indeksleri aşırı parçalar (index fragmentation %99'a fırlar), devasa işlem günlüğü (LDF) üretir ve disk I/O darboğazı yaratır.</p>
+            <p>Mümkünse veri taşımayan <strong>TRUNCATEONLY</strong> tercih edin. Eğer zorunlu hedef boyuta küçülttüyseniz hemen ardından kritik indeksleri <code>REBUILD</code> edin!</p>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <span class="text-xs font-semibold text-slate-200">DBCC SHRINKFILE T-SQL Komutu</span>
+                <button @click="copyText(generatedShrinkSql, 'Shrink scripti kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5">
+                  <span>Kopyala</span>
+                </button>
+              </div>
+              <div class="mt-4">
+                <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedShrinkSql }}</pre>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400">
+              <span class="font-semibold text-slate-300 block mb-1">Dosya İçindeki Boş Alan Yüzdesini Görme:</span>
+              <pre class="bg-slate-950 text-emerald-300/90 p-2.5 rounded font-mono text-[11px] overflow-x-auto">USE [{{ shrink.database }}];
+SELECT name, size/128.0 AS CurrentSizeMB, 
+       size/128.0 - CAST(FILEPROPERTY(name, 'SpaceUsed') AS INT)/128.0 AS FreeSpaceMB,
+       ((size/128.0 - CAST(FILEPROPERTY(name, 'SpaceUsed') AS INT)/128.0)/(size/128.0))*100 AS PercentFree
+FROM sys.database_files;
+GO</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.3 RECOVERY MODEL -->
+      <div v-if="storageSubTab === 'recovery'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-sqlamber-400"></span>
+              <span>Recovery Model Değiştirme & Log Zinciri Koruması</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">FULL, SIMPLE veya BULK_LOGGED modelleri arasında güvenli geçiş yapın.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Veritabanı Adı</label>
+              <input v-model="recModel.database" placeholder="Production_DB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Yeni Kurtarma Modeli</label>
+              <select v-model="recModel.model" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200">
+                <option value="FULL">FULL (Zaman Noktasına / Point-in-time Kurtarma)</option>
+                <option value="SIMPLE">SIMPLE (Otomatik Log Temizleme / Test & Dev)</option>
+                <option value="BULK_LOGGED">BULK_LOGGED (Toplu Yüklemelerde Minimal Loglama)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-amber-950/30 border border-amber-900/60 rounded-xl p-4 text-xs text-amber-300/90 space-y-2">
+            <strong class="font-bold text-amber-200">Hayati DBA Kuralı (Log Chain Continuity):</strong>
+            <p>SIMPLE modelden FULL modele geçtiğinizde veritabanı <em>hemen tam korumalı olmaz</em> (pseudo-simple modunda kalır). İlk <strong>FULL BACKUP</strong> alınana kadar Transaction Log yedekleri alınamaz!</p>
+            <p>Üretilen script, geçişin ardından zinciri başlatacak ilk yedeği otomatik olarak dahil eder.</p>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <span class="text-xs font-semibold text-slate-200">Recovery Model Geçiş T-SQL Scripti</span>
+                <button @click="copyText(generatedRecoveryModelSql, 'Recovery model scripti kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5">
+                  <span>Kopyala</span>
+                </button>
+              </div>
+              <div class="mt-4">
+                <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedRecoveryModelSql }}</pre>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400">
+              <span class="font-semibold text-slate-300 block mb-1">Mevcut Recovery Modellerini ve Log Bekleme Nedenlerini Sorgula:</span>
+              <pre class="bg-slate-950 text-amber-300/90 p-2.5 rounded font-mono text-[11px] overflow-x-auto">SELECT name, recovery_model_desc, log_reuse_wait_desc 
+FROM sys.databases;
+GO</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 4: OTURUM YÖNETİMİ & KILL HELPER                                   -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'sessions'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-6 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+        <div class="border-b border-slate-800 pb-3">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span>Oturum Sonlandırma & Kill Helper</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Kilitlenen SPID'leri nazikçe veya zorla sonlandırın, rollback durumunu izleyin.</p>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+          <span class="text-xs font-semibold text-slate-300">1. Tekil SPID Sonlandırma & Rollback İzleme</span>
+          <div class="flex items-center space-x-3">
+            <div class="w-1/2">
+              <label class="block text-[11px] text-slate-400 mb-1">SPID Numarası (session_id)</label>
+              <input v-model.number="killSpid" type="number" placeholder="74" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-rose-300 font-mono font-bold">
+            </div>
+            <div class="w-1/2 flex items-end space-x-2">
+              <button @click="copyText('KILL ' + killSpid + ';', 'KILL komutu kopyalandı!')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-rose-700 hover:bg-rose-600 text-white transition-colors">
+                KILL {{ killSpid || 0 }}
+              </button>
+              <button @click="copyText('KILL ' + killSpid + ' WITH STATUSONLY;', 'KILL STATUSONLY kopyalandı!')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-amber-700 hover:bg-amber-600 text-white transition-colors" title="Rollback ilerleme yüzdesini canlı izle">
+                STATUSONLY
+              </button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400">
+            <strong class="text-amber-400">KILL &lt;spid&gt; WITH STATUSONLY:</strong> Büyük bir transaction'ı kill ettiğinizde SQL Server veriyi geri almaya (rollback) başlar. Tekrar kill etmek süreci hızlandırmaz! Bu komut rollback'in % kaçının tamamlandığını ve tahmini kalan süreyi gösterir.
+          </p>
+        </div>
+
+        <!-- Single User Emergency -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+          <span class="text-xs font-semibold text-rose-400">2. Veritabanını Tek Kullanıcıya Alma (SINGLE_USER)</span>
+          <p class="text-[11px] text-slate-400">Restore, bakım veya isim değişikliği öncesi veritabanına bağlı tüm aktif kullanıcı oturumlarını anında zorla koparır (ROLLBACK IMMEDIATE).</p>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Hedef Veritabanı</label>
+            <input v-model="killDbTarget" placeholder="AdventureWorks" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+          <div class="flex space-x-2 pt-1">
+            <button @click="copyText(generatedSingleUserSql, 'SINGLE_USER scripti kopyalandı!')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-rose-700 hover:bg-rose-600 text-white">
+              SINGLE_USER Yap (Kopart)
+            </button>
+            <button @click="copyText(generatedMultiUserSql, 'MULTI_USER scripti kopyalandı!')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white">
+              MULTI_USER Yap (Erişime Aç)
+            </button>
+          </div>
+        </div>
+
+        <!-- Kill Idle Transactions -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+          <span class="text-xs font-semibold text-slate-300">3. Uyuyan & Kilit Tutan Oturumları Topluca Kapatma</span>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Boşta Bekleme Eşiği (Dakika)</label>
+              <input v-model.number="killIdleMins" type="number" placeholder="30" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div class="flex items-end">
+              <button @click="copyText(generatedKillSleepingSql, 'Uyuyan oturumları sonlandırma scripti kopyalandı!')" class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+                Scripti Kopyala
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live DMV inspection code for session -->
+      <div class="lg:col-span-6 flex flex-col space-y-4">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <span class="text-xs font-semibold text-slate-200">SPID {{ killSpid || '' }} Detay Teşhis Sorgusu (Kill Öncesi İnceleme)</span>
+              <button @click="copyText(generatedInspectSpidSql, 'SPID teşhis sorgusu kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5">
+                <span>Kopyala</span>
+              </button>
+            </div>
+            <div class="mt-4">
+              <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedInspectSpidSql }}</pre>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400">
+            <span class="font-semibold text-slate-300 block mb-1">Veritabanındaki Tüm Oturumları Dinamik Cursor ile Kapatma Scripti:</span>
+            <pre class="bg-slate-950 text-amber-300/90 p-3 rounded font-mono text-[11px] overflow-x-auto">DECLARE @kill varchar(8000) = '';  
+SELECT @kill = @kill + 'KILL ' + CONVERT(varchar(5), session_id) + ';'  
+FROM sys.dm_exec_sessions
+WHERE database_id = DB_ID('{{ killDbTarget }}') AND is_user_process = 1 AND session_id &lt;&gt; @@SPID;
+EXEC(@kill);</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 5: ACİL DURUM & KRİTİK DMV DEPOSU                                  -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'dmv'" class="space-y-6">
+      <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-sqlred-500"></span>
+              <span>Acil Durum & Kritik DMV (Dynamic Management Views) Deposu</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Canlı sunucuda performans darboğazlarını, kilitlenmeleri ve eksik indeksleri saniyeler içinde yakalayın.</p>
+          </div>
+          
+          <!-- Search Input -->
+          <div class="w-full sm:w-72 relative">
+            <input 
+              v-model="dmvSearch" 
+              type="text" 
+              placeholder="DMV veya konu ara (örn: deadlock, cpu, tempdb)..." 
+              class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sqlred-500 font-mono"
+            >
+            <span v-if="dmvSearch" @click="dmvSearch = ''" class="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-slate-300 cursor-pointer">✕</span>
+          </div>
+        </div>
+
+        <!-- Category Filters -->
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80">
+          <button 
+            v-for="cat in dmvCategories" 
+            :key="cat.id"
+            @click="selectedDmvCat = cat.id"
+            :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', selectedDmvCat === cat.id ? 'bg-sqlred-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800']"
+          >
+            {{ cat.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- DMV Query Cards List -->
+      <div class="grid grid-cols-1 gap-6">
+        <div 
+          v-for="query in filteredDmvQueries" 
+          :key="query.id" 
+          class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl transition-all duration-200 hover:border-slate-700 flex flex-col justify-between"
+        >
+          <div>
+            <!-- Card Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+              <div class="flex items-center space-x-3">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide" :class="query.badgeClass">
+                  {{ query.categoryLabel }}
+                </span>
+                <h3 class="text-sm font-bold text-white">{{ query.title }}</h3>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-[11px] text-slate-400 font-mono hidden md:inline">{{ query.dmvUsed }}</span>
+                <button 
+                  @click="copyText(query.sql, query.title + ' kopyalandı!')" 
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5 shadow transition-colors"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                  <span>Kopyala</span>
+                </button>
+                <button 
+                  @click="downloadScript(query.sql, query.id + '.sql')" 
+                  class="p-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                  title=".sql dosyası indir"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <p class="text-xs text-slate-300 my-3 leading-relaxed">{{ query.description }}</p>
+
+            <!-- Code Pre Box -->
+            <div class="relative">
+              <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ query.sql }}</pre>
+            </div>
+          </div>
+
+          <!-- Card Footer Note -->
+          <div v-if="query.dbaNote" class="mt-3 pt-3 border-t border-slate-800/60 flex items-start space-x-2 text-[11px] text-amber-300/90">
+            <svg class="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div><strong>DBA Notu:</strong> {{ query.dbaNote }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 6: CONNECTION STRING & BAĞLANTI FORMATLAYICI                       -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'connection'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-5 space-y-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+        <div class="border-b border-slate-800 pb-3">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span>Bağlantı Parametreleri</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">C#, Java, Python, CLI ve PowerShell için anında bağlantı dizesi üretin.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Host / IP / FQDN</label>
+            <input v-model="cn.host" placeholder="sqlserver.company.local" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Port</label>
+            <input v-model.number="cn.port" type="number" placeholder="1433" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Instance Adı (Opsiyonel)</label>
+            <input v-model="cn.instance" placeholder="MSSQLSERVER veya SQLEXPRESS" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Veritabanı (Initial Catalog)</label>
+            <input v-model="cn.database" placeholder="Production_DB" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Kimlik Doğrulama Türü</label>
+          <select v-model="cn.authType" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200">
+            <option value="SQL">SQL Server Authentication (Kullanıcı Adı & Şifre)</option>
+            <option value="WINDOWS">Windows Integrated Authentication (SSPI / Trusted)</option>
+            <option value="AZURE_MFA">Azure Active Directory / Entra Interactive MFA</option>
+          </select>
+        </div>
+
+        <div v-if="cn.authType === 'SQL'" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Kullanıcı (User Id)</label>
+            <input v-model="cn.user" placeholder="sa" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Şifre</label>
+            <input v-model="cn.password" type="text" placeholder="Passw0rd!" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+        </div>
+
+        <!-- Security & High-Availability Flags -->
+        <div class="space-y-2 pt-2">
+          <label class="block text-xs font-medium text-slate-300">Güvenlik & Always On Parametreleri</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="cn.encrypt" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-xs text-slate-300">Encrypt = True</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="cn.trustServerCert" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-xs text-slate-300">TrustServerCert = True</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="cn.readOnlyIntent" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-xs text-slate-300">ReadOnly Intent (AG)</span>
+            </label>
+            <label class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-2 rounded-lg cursor-pointer">
+              <input type="checkbox" v-model="cn.multiSubnet" class="rounded bg-slate-900 border-slate-700 text-sqlred-600">
+              <span class="text-xs text-slate-300">MultiSubnetFailover</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output Formats -->
+      <div class="lg:col-span-7 flex flex-col space-y-4">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+          <!-- Format Selector Tabs -->
+          <div class="flex flex-wrap gap-1.5 border-b border-slate-800 pb-3">
+            <button 
+              v-for="fmt in connectionFormats" 
+              :key="fmt.id"
+              @click="activeConnFormat = fmt.id"
+              :class="['px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors', activeConnFormat === fmt.id ? 'bg-sqlred-600 text-white' : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800']"
+            >
+              {{ fmt.label }}
+            </button>
+          </div>
+
+          <!-- Code Display -->
+          <div class="flex-1 flex flex-col justify-between mt-4">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-200">{{ activeConnFormatTitle }}</span>
+                <button @click="copyText(activeConnCode, activeConnFormatTitle + ' kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                  <span>Kopyala</span>
+                </button>
+              </div>
+              <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80 whitespace-pre-wrap break-all">{{ activeConnCode }}</pre>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400 flex items-start space-x-2">
+              <svg class="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <div>
+                <strong>SQL Server 2022 & Microsoft.Data.SqlClient Uyarısı:</strong> Yeni sürümlerde <code>Encrypt=True</code> varsayılan olarak zorunludur. Eğer sunucunuzda resmi CA imzalı SSL/TLS sertifikası yoksa ve self-signed sertifika kullanılıyorsa, bağlantının kopmaması için <code>TrustServerCertificate=True</code> parametresini eklemelisiniz.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- MODULE 7: MAX SERVER MEMORY & MAXDOP HESAPLAYICISI                       -->
+    <!-- ========================================================================= -->
+    <section v-if="activeTab === 'tuning'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Calculator Inputs -->
+      <div class="lg:col-span-5 space-y-5 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+        <div class="border-b border-slate-800 pb-3">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sqlamber-400"></span>
+            <span>Donanım & Mimari Parametreleri</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Microsoft resmi DBA standartlarına göre Max Server Memory ve MAXDOP optimizasyonu.</p>
+        </div>
+
+        <!-- RAM Slider & Input -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-200">Sunucu Toplam Fiziksel RAM</label>
+            <span class="text-xs font-mono font-bold text-sqlamber-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{{ tune.ramGb }} GB</span>
+          </div>
+          <input type="range" v-model.number="tune.ramGb" min="4" max="512" step="4" class="w-full accent-sqlred-600 bg-slate-800 rounded-lg h-2 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+            <span>4 GB</span>
+            <span>64 GB</span>
+            <span>128 GB</span>
+            <span>256 GB</span>
+            <span>512 GB</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">SQL Instance Sayısı</label>
+            <input v-model.number="tune.instanceCount" type="number" min="1" max="10" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Ek Servisler (SSIS / SSRS / SSAS)</label>
+            <select v-model="tune.hasOtherServices" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200">
+              <option :value="false">Yalnızca SQL Engine</option>
+              <option :value="true">SSIS / SSRS / SSAS Var (+4 GB OS)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CPU & NUMA -->
+        <div class="border-t border-slate-800 pt-4 space-y-3">
+          <span class="text-xs font-semibold text-slate-200 block">CPU & NUMA Düğüm Mimarisi</span>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Toplam Mantıksal Çekirdek (Cores)</label>
+              <input v-model.number="tune.logicalCores" type="number" min="1" max="256" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">NUMA Düğüm (Node) Sayısı</label>
+              <input v-model.number="tune.numaNodes" type="number" min="1" max="16" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Hyper-Threading (HT)</label>
+              <select v-model="tune.hyperThreading" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200">
+                <option :value="true">Aktif (Enabled)</option>
+                <option :value="false">Kapalı (Disabled)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Cost Threshold for Parallelism</label>
+              <input v-model.number="tune.costThreshold" type="number" min="5" max="100" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Visual Memory Distribution Bar -->
+        <div class="border-t border-slate-800 pt-4 space-y-2">
+          <span class="text-xs font-semibold text-slate-200 block">Bellek Dağılım Önizlemesi</span>
+          <div class="w-full h-5 rounded-lg bg-slate-950 flex overflow-hidden border border-slate-800">
+            <div 
+              :style="{ width: calculatedMemory.osPercent + '%' }" 
+              class="bg-rose-700 flex items-center justify-center text-[10px] text-white font-mono font-bold"
+              :title="'İşletim Sistemi Rezervi: ' + calculatedMemory.osReservedGb + ' GB'"
+            >
+              OS {{ calculatedMemory.osReservedGb }}G
+            </div>
+            <div 
+              :style="{ width: calculatedMemory.sqlPercent + '%' }" 
+              class="bg-gradient-to-r from-sqlred-600 to-sqlamber-500 flex items-center justify-center text-[10px] text-white font-mono font-bold"
+              :title="'SQL Server Max Memory: ' + calculatedMemory.sqlMaxGb + ' GB'"
+            >
+              SQL Max {{ calculatedMemory.sqlMaxGb }}G
+            </div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400">
+            <span class="flex items-center space-x-1.5"><span class="w-2 h-2 rounded-full bg-rose-700"></span><span>OS / Dış Rezerv: <strong>{{ calculatedMemory.osReservedGb }} GB</strong></span></span>
+            <span class="flex items-center space-x-1.5"><span class="w-2 h-2 rounded-full bg-sqlamber-400"></span><span>SQL Server: <strong>{{ calculatedMemory.sqlMaxMb }} MB</strong></span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculation Breakdown & sp_configure Script -->
+      <div class="lg:col-span-7 flex flex-col space-y-4">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-semibold text-slate-200">Hesaplanan Öneriler & sp_configure T-SQL</span>
+              </div>
+              <button @click="copyText(generatedTuningSql, 'Tuning sp_configure scripti kopyalandı!')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sqlred-600 hover:bg-sqlred-700 text-white flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                <span>Kopyala</span>
+              </button>
+            </div>
+
+            <!-- Quick Metrics Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 my-4">
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">max server memory</span>
+                <span class="text-sm font-mono font-bold text-amber-400">{{ calculatedMemory.sqlMaxMb }} MB</span>
+                <span class="text-[10px] text-slate-500 block">({{ calculatedMemory.sqlMaxGb }} GB)</span>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">max degree of parallelism</span>
+                <span class="text-sm font-mono font-bold text-emerald-400">MAXDOP = {{ calculatedMaxdop.val }}</span>
+                <span class="text-[10px] text-slate-500 block">{{ calculatedMaxdop.reason }}</span>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">cost threshold for par.</span>
+                <span class="text-sm font-mono font-bold text-cyan-400">{{ tune.costThreshold }}</span>
+                <span class="text-[10px] text-slate-500 block">(Varsayılan 5 çok düşüktür)</span>
+              </div>
+            </div>
+
+            <!-- Generated Script Output -->
+            <pre class="bg-slate-950 text-slate-200 text-xs p-4 rounded-xl font-mono overflow-x-auto leading-relaxed border border-slate-800/80">{{ generatedTuningSql }}</pre>
+          </div>
+
+          <!-- Formulas & Guidance -->
+          <div class="mt-4 pt-4 border-t border-slate-800/80 space-y-2 text-xs text-slate-400">
+            <span class="font-semibold text-slate-300 block">Kullanılan Formül ve Kurallar:</span>
+            <ul class="list-disc list-inside space-y-1 text-[11px] leading-relaxed">
+              <li><strong>OS Rezervi (Jonathan Kehayias / MS Kuralı):</strong> İlk 4 GB RAM için 1 GB, 4-16 GB arası her 4 GB için 1 GB, 16 GB üstü her 8 GB için 1 GB ayrılır.</li>
+              <li><strong>MAXDOP Kuralı:</strong> NUMA node başına çekirdek sayısı &lt;= 8 ise o değer; &gt; 8 ise en fazla 8 olarak ayarlanmalıdır (aşırı CXPACKET beklemesini önlemek için).</li>
+              <li><strong>Cost Threshold:</strong> Varsayılan 5 değeri 1990'lardaki tek çekirdekli CPU'lardan kalmıştır; modern sunucularda 50 önerilir.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: HIZLI BAŞVURU (CHEAT SHEET)                                       -->
+  <!-- ========================================================================= -->
+  <div v-if="showCheatSheet" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-sqlamber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          <h3 class="text-sm font-bold text-white">SQL Server DBA Hızlı Başvuru Kartı (Cheat Sheet)</h3>
+        </div>
+        <button @click="showCheatSheet = false" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-slate-300">
+        
+        <!-- Section 1: DBCC Commands -->
+        <div>
+          <h4 class="font-bold text-sm text-sqlamber-400 mb-2 flex items-center space-x-1.5">
+            <span>🛠️ En Sık Kullanılan DBCC Komutları</span>
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <code class="text-sqlred-400 font-bold block mb-1">DBCC CHECKDB ('DBName') WITH NO_INFOMSGS;</code>
+              <p class="text-[11px] text-slate-400">Veritabanı bozulmalarını (corruption) ve sayfa tutarlılığını baştan sona denetler.</p>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <code class="text-sqlred-400 font-bold block mb-1">DBCC SQLPERF(LOGSPACE);</code>
+              <p class="text-[11px] text-slate-400">Tüm veritabanlarının Transaction Log boyutunu ve doluluk yüzdesini anlık listeler.</p>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <code class="text-sqlred-400 font-bold block mb-1">DBCC OPENTRAN('DBName');</code>
+              <p class="text-[11px] text-slate-400">Veritabanındaki en eski açık transaction'ı (ve SPID'yi) gösterir; log truncation'ı engelleyen oturumu bulur.</p>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <code class="text-sqlred-400 font-bold block mb-1">DBCC DROPCLEANBUFFERS; / FREEPROCCACHE;</code>
+              <p class="text-[11px] text-slate-400">Test ortamında RAM önbelleğini ve derlenmiş plan önbelleğini temizler (PROD ortamında kesinlikle yapmayın!).</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Isolation Levels -->
+        <div>
+          <h4 class="font-bold text-sm text-emerald-400 mb-2 flex items-center space-x-1.5">
+            <span>🔒 Transaction Isolation Levels (İzolasyon Seviyeleri)</span>
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-800 text-[11px]">
+              <thead>
+                <tr class="bg-slate-950 text-slate-300">
+                  <th class="p-2 border border-slate-800">Seviye</th>
+                  <th class="p-2 border border-slate-800">Dirty Read</th>
+                  <th class="p-2 border border-slate-800">Non-Repeatable Read</th>
+                  <th class="p-2 border border-slate-800">Phantom Read</th>
+                  <th class="p-2 border border-slate-800">Mekanizma</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="p-2 border border-slate-800 font-mono text-sqlred-400">READ UNCOMMITTED</td>
+                  <td class="p-2 border border-slate-800 text-rose-400 font-bold">Oluşur (NOLOCK)</td>
+                  <td class="p-2 border border-slate-800 text-rose-400">Oluşur</td>
+                  <td class="p-2 border border-slate-800 text-rose-400">Oluşur</td>
+                  <td class="p-2 border border-slate-800">Paylaşımlı kilit almaz</td>
+                </tr>
+                <tr>
+                  <td class="p-2 border border-slate-800 font-mono text-slate-200">READ COMMITTED (Varsayılan)</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800 text-rose-400">Oluşur</td>
+                  <td class="p-2 border border-slate-800 text-rose-400">Oluşur</td>
+                  <td class="p-2 border border-slate-800">Kısa süreli paylaşımlı kilit</td>
+                </tr>
+                <tr>
+                  <td class="p-2 border border-slate-800 font-mono text-cyan-400">SNAPSHOT (RCSI)</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800">TempDB satır versiyonlama (Okuma yazmayı kilitlemez!)</td>
+                </tr>
+                <tr>
+                  <td class="p-2 border border-slate-800 font-mono text-amber-400">SERIALIZABLE</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800 text-emerald-400">Engellenir</td>
+                  <td class="p-2 border border-slate-800">Range kilitleri (En yüksek kilitlenme)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 3: Always On Manual Failover -->
+        <div>
+          <h4 class="font-bold text-sm text-cyan-400 mb-2 flex items-center space-x-1.5">
+            <span>🛡️ Always On Manuel Failover Komutu</span>
+          </h4>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[11px] space-y-1">
+            <div class="text-slate-400">-- İkincil (Secondary) Replica Üzerinde Çalıştırın:</div>
+            <div class="text-cyan-300">ALTER AVAILABILITY GROUP [AG_Name] FAILOVER;</div>
+            <div class="text-slate-500 mt-2">-- Senkron olmayan replika için veri kaybı riskli zorla failover:</div>
+            <div class="text-rose-400">ALTER AVAILABILITY GROUP [AG_Name] FORCE_FAILOVER_ALLOW_DATA_LOSS;</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 flex justify-end">
+        <button @click="showCheatSheet = false" class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Floating Stack -->
+  <div class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none">
+    <transition-group 
+      enter-active-class="transform ease-out duration-300 transition" 
+      enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2" 
+      enter-to-class="translate-y-0 opacity-100 sm:translate-x-0" 
+      leave-active-class="transition ease-in duration-100" 
+      leave-from-class="opacity-100" 
+      leave-to-class="opacity-0"
+    >
+      <div 
+        v-for="toast in toasts" 
+        :key="toast.id" 
+        class="pointer-events-auto bg-slate-900 border border-slate-700/80 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2.5 text-xs max-w-sm"
+      >
+        <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+        <span class="font-medium text-slate-200">{{ toast.message }}</span>
+      </div>
+    </transition-group>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-900/60 mt-auto py-5 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="font-semibold text-slate-400">SQL Server DBA Cockpit</span>
+        <span>•</span>
+        <span>Zero-Knowledge & Client-Side Only</span>
+      </div>
+      <div>
+        <span>Microsoft SQL Server 2012–2022+ ve Azure SQL MI İçin Tasarlandı</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Vue 3 Application Script -->
+<script>
+  const { createApp, ref, computed, onMounted } = Vue;
+
+  createApp({
+    setup() {
+      // Global State
+      const activeTab = ref('backup');
+      const showCheatSheet = ref(false);
+      const toasts = ref([]);
+
+      const tabs = [
+        { id: 'backup', label: 'Backup & Restore & BCP', icon: '📦' },
+        { id: 'users', label: 'Login & Güvenlik', icon: '👤' },
+        { id: 'storage', label: 'Database & Storage', icon: '💾' },
+        { id: 'sessions', label: 'Oturum & Kill Helper', icon: '⚡' },
+        { id: 'dmv', label: 'Acil Durum DMV Deposu', icon: '🔍' },
+        { id: 'connection', label: 'Bağlantı Formatlayıcı', icon: '🌐' },
+        { id: 'tuning', label: 'Memory & MAXDOP', icon: '🧮' }
+      ];
+
+      const addToast = (message) => {
+        const id = Date.now() + Math.random();
+        toasts.value.push({ id, message });
+        setTimeout(() => {
+          toasts.value = toasts.value.filter(t => t.id !== id);
+        }, 3000);
+      };
+
+      const copyText = (text, msg = 'Panoya kopyalandı!') => {
+        if (!text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => {
+            addToast(msg);
+          }).catch(() => {
+            fallbackCopy(text, msg);
+          });
+        } else {
+          fallbackCopy(text, msg);
+        }
+      };
+
+      const fallbackCopy = (text, msg) => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          addToast(msg);
+        } catch (e) {
+          addToast('Kopyalama başarısız oldu.');
+        }
+        document.body.removeChild(ta);
+      };
+
+      const downloadScript = (content, filename) => {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        addToast(filename + ' indirildi.');
+      };
+
+      // =========================================================================
+      // MODULE 1: BACKUP & RESTORE & BCP
+      // =========================================================================
+      const backupSubTab = ref('backup');
+
+      const bk = ref({
+        database: 'AdventureWorks2022',
+        type: 'FULL',
+        path: 'D:\\SQLBackups\\AdventureWorks2022_Full.bak',
+        compression: true,
+        checksum: true,
+        copyOnly: false,
+        init: true,
+        format: true,
+        tuneIo: false,
+        stats: 5,
+        backupName: 'AdventureWorks-Full Database Backup'
+      });
+
+      const autoGenerateBackupPath = () => {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mi = String(now.getMinutes()).padStart(2, '0');
+        const ext = bk.value.type === 'LOG' ? '.trn' : '.bak';
+        bk.value.path = `D:\\SQLBackups\\${bk.value.database}_${bk.value.type}_${yyyy}${mm}${dd}_${hh}${mi}${ext}`;
+        addToast('Yedek dosya yoluna tarih damgası eklendi.');
+      };
+
+      const generatedBackupSql = computed(() => {
+        const b = bk.value;
+        const options = [];
+        if (b.format) options.push('FORMAT');
+        if (b.init) options.push('INIT'); else options.push('NOINIT');
+        if (b.compression) options.push('COMPRESSION');
+        if (b.checksum) options.push('CHECKSUM');
+        if (b.copyOnly) options.push('COPY_ONLY');
+        if (b.backupName) options.push(`NAME = N'${b.backupName}'`);
+        if (b.stats) options.push(`STATS = ${b.stats}`);
+        if (b.tuneIo) {
+          options.push('BUFFERCOUNT = 64');
+          options.push('MAXTRANSFERSIZE = 4194304');
+        }
+
+        let sql = '';
+        if (b.type === 'FULL') {
+          sql = `-- =================================================================\n-- SQL Server DBA Cockpit: FULL BACKUP\n-- Veritabanı: [${b.database}]\n-- =================================================================\nBACKUP DATABASE [${b.database}]\nTO DISK = N'${b.path}'\nWITH\n  ${options.join(',\n  ')};\nGO`;
+        } else if (b.type === 'DIFF') {
+          options.unshift('DIFFERENTIAL');
+          sql = `-- =================================================================\n-- SQL Server DBA Cockpit: DIFFERENTIAL BACKUP\n-- Veritabanı: [${b.database}]\n-- =================================================================\nBACKUP DATABASE [${b.database}]\nTO DISK = N'${b.path}'\nWITH\n  ${options.join(',\n  ')};\nGO`;
+        } else {
+          sql = `-- =================================================================\n-- SQL Server DBA Cockpit: TRANSACTION LOG BACKUP\n-- Veritabanı: [${b.database}]\n-- =================================================================\nBACKUP LOG [${b.database}]\nTO DISK = N'${b.path}'\nWITH\n  ${options.join(',\n  ')};\nGO`;
+        }
+        return sql;
+      });
+
+      // RESTORE
+      const rs = ref({
+        targetDb: 'AdventureWorks_Restored',
+        backupPath: 'D:\\SQLBackups\\AdventureWorks2022_Full.bak',
+        recoveryState: 'RECOVERY',
+        standbyUndoPath: 'D:\\SQLBackups\\AdventureWorks_undo.ldf',
+        replace: true,
+        checksum: true,
+        moveFiles: [
+          { logicalName: 'AdventureWorks2022_Data', physicalPath: 'D:\\SQLData\\AdventureWorks_Restored.mdf', type: 'DATA' },
+          { logicalName: 'AdventureWorks2022_Log', physicalPath: 'L:\\SQLLog\\AdventureWorks_Restored.ldf', type: 'LOG' }
+        ]
+      });
+
+      const addMoveFile = () => {
+        rs.value.moveFiles.push({
+          logicalName: 'AdventureWorks_File_' + (rs.value.moveFiles.length + 1),
+          physicalPath: 'D:\\SQLData\\AdventureWorks_New_' + (rs.value.moveFiles.length + 1) + '.ndf',
+          type: 'DATA'
+        });
+      };
+
+      const removeMoveFile = (index) => {
+        rs.value.moveFiles.splice(index, 1);
+      };
+
+      const generatedRestoreSql = computed(() => {
+        const r = rs.value;
+        const options = [];
+        if (r.replace) options.push('REPLACE');
+        if (r.recoveryState === 'RECOVERY') {
+          options.push('RECOVERY');
+        } else if (r.recoveryState === 'NORECOVERY') {
+          options.push('NORECOVERY');
+        } else if (r.recoveryState === 'STANDBY') {
+          options.push(`STANDBY = N'${r.standbyUndoPath}'`);
+        }
+
+        r.moveFiles.forEach(f => {
+          if (f.logicalName && f.physicalPath) {
+            options.push(`MOVE N'${f.logicalName}' TO N'${f.physicalPath}'`);
+          }
+        });
+
+        if (r.checksum) options.push('CHECKSUM');
+        options.push('STATS = 5');
+
+        return `-- =================================================================\n-- SQL Server DBA Cockpit: RESTORE WITH MOVE SCRIPT\n-- Hedef Veritabanı: [${r.targetDb}]\n-- Kurtarma Modu: ${r.recoveryState}\n-- =================================================================\nUSE [master];\nALTER DATABASE [${r.targetDb}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\nGO\n\nRESTORE DATABASE [${r.targetDb}]\nFROM DISK = N'${r.backupPath}'\nWITH\n  ${options.join(',\n  ')};\nGO\n\nALTER DATABASE [${r.targetDb}] SET MULTI_USER;\nGO`;
+      });
+
+      // BCP
+      const bcp = ref({
+        direction: 'out',
+        format: '-c -t, -r\\n',
+        auth: 'T',
+        server: 'SRV-SQL01\\MSSQLSERVER,1433',
+        database: 'AdventureWorks2022',
+        table: 'Sales.Customer',
+        query: 'SELECT Top 1000 * FROM Sales.Customer',
+        filePath: 'D:\\Export\\CustomerData.csv',
+        user: 'sa',
+        password: '',
+        skipHeader: false,
+        keepNulls: true,
+        keepIdentity: false,
+        utf8: true
+      });
+
+      const generatedBcpCommand = computed(() => {
+        const c = bcp.value;
+        const target = c.direction === 'queryout' ? `"${c.query}"` : `[${c.database}].${c.table}`;
+        const dir = c.direction;
+        let authFlag = c.auth === 'T' ? '-T' : `-U "${c.user}" -P "${c.password}"`;
+        let extra = [];
+        if (c.skipHeader && c.direction === 'in') extra.push('-F 2');
+        if (c.keepNulls) extra.push('-k');
+        if (c.keepIdentity && c.direction === 'in') extra.push('-E');
+        if (c.utf8) extra.push('-C 65001');
+        extra.push('-b 10000');
+        extra.push('-e "D:\\Export\\bcp_err.log"');
+
+        return `bcp ${target} ${dir} "${c.filePath}" -S "${c.server}" -d "${c.database}" ${authFlag} ${c.format} ${extra.join(' ')}`;
+      });
+
+      // =========================================================================
+      // MODULE 2: LOGIN, USER & PERMISSIONS
+      // =========================================================================
+      const rolePreset = ref('readonly');
+      const sec = ref({
+        username: 'app_service_user',
+        password: '',
+        database: 'Production_DB',
+        checkPolicy: true,
+        checkExpiration: true,
+        mustChange: false,
+        granularPerm: 'EXECUTE',
+        granularTarget: 'OBJECT',
+        granularName: 'dbo.usp_CalculateReport',
+        serverRoles: {
+          processadmin: false,
+          securityadmin: false,
+          dbcreator: false,
+          sysadmin: false
+        }
+      });
+
+      const generateSecurePassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*()_+~';
+        let pass = '';
+        const array = new Uint32Array(18);
+        window.crypto.getRandomValues(array);
+        for (let i = 0; i < 18; i++) {
+          pass += chars[array[i] % chars.length];
+        }
+        sec.value.password = pass;
+      };
+
+      const applyRolePreset = (preset) => {
+        rolePreset.value = preset;
+      };
+
+      const generatedSecuritySql = computed(() => {
+        const s = sec.value;
+        const policy = s.checkPolicy ? 'ON' : 'OFF';
+        const exp = s.checkExpiration ? 'ON' : 'OFF';
+        const mustChg = s.mustChange ? 'ON' : 'OFF';
+
+        let sql = `-- =================================================================\n-- SQL Server DBA Cockpit: Server Login & Database User Yetkilendirme\n-- Login: [${s.username}] | DB: [${s.database}]\n-- =================================================================\nUSE [master];\nGO\n\n-- 1. Server Login Oluştur\nIF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'${s.username}')\nBEGIN\n    CREATE LOGIN [${s.username}] WITH \n        PASSWORD = N'${s.password}',\n        DEFAULT_DATABASE = [${s.database}],\n        CHECK_POLICY = ${policy},\n        CHECK_EXPIRATION = ${exp};\nEND\nGO\n`;
+
+        // Server Roles
+        Object.keys(s.serverRoles).forEach(r => {
+          if (s.serverRoles[r]) {
+            sql += `ALTER SERVER ROLE [${r}] ADD MEMBER [${s.username}];\n`;
+          }
+        });
+
+        sql += `\n-- 2. Database User Eşleştir\nUSE [${s.database}];\nGO\n\nIF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'${s.username}')\nBEGIN\n    CREATE USER [${s.username}] FOR LOGIN [${s.username}] WITH DEFAULT_SCHEMA = [dbo];\nEND\nGO\n\n-- 3. Rol & İzin Atamaları\n`;
+
+        if (rolePreset.value === 'readonly') {
+          sql += `ALTER ROLE [db_datareader] ADD MEMBER [${s.username}];\nGRANT VIEW DEFINITION TO [${s.username}];\n`;
+        } else if (rolePreset.value === 'readwrite') {
+          sql += `ALTER ROLE [db_datareader] ADD MEMBER [${s.username}];\nALTER ROLE [db_datawriter] ADD MEMBER [${s.username}];\nGRANT EXECUTE TO [${s.username}];\n`;
+        } else if (rolePreset.value === 'ddladmin') {
+          sql += `ALTER ROLE [db_ddladmin] ADD MEMBER [${s.username}];\nALTER ROLE [db_datareader] ADD MEMBER [${s.username}];\nALTER ROLE [db_datawriter] ADD MEMBER [${s.username}];\n`;
+        } else if (rolePreset.value === 'granular') {
+          if (s.granularTarget === 'OBJECT') {
+            sql += `GRANT ${s.granularPerm} ON OBJECT::[${s.granularName}] TO [${s.username}];\n`;
+          } else {
+            sql += `GRANT ${s.granularPerm} ON SCHEMA::[${s.granularName}] TO [${s.username}];\n`;
+          }
+        }
+        sql += 'GO';
+        return sql;
+      });
+
+      // =========================================================================
+      // MODULE 3: DATABASE, FILEGROUP & STORAGE
+      // =========================================================================
+      const storageSubTab = ref('addfile');
+
+      const stFile = ref({
+        database: 'Production_DB',
+        fileType: 'DATA',
+        filegroup: 'PRIMARY',
+        logicalName: 'Prod_Data_02',
+        physicalPath: 'E:\\SQLData\\Prod_Data_02.ndf',
+        size: '10240MB',
+        filegrowth: '1024MB',
+        maxsize: 'UNLIMITED'
+      });
+
+      const generatedAddFileSql = computed(() => {
+        const f = stFile.value;
+        if (f.fileType === 'DATA') {
+          return `-- =================================================================\n-- SQL Server DBA Cockpit: ADD DATA FILE (.ndf)\n-- =================================================================\nUSE [master];\nGO\n\nALTER DATABASE [${f.database}]\nADD FILE \n(\n    NAME = N'${f.logicalName}',\n    FILENAME = N'${f.physicalPath}',\n    SIZE = ${f.size},\n    FILEGROWTH = ${f.filegrowth},\n    MAXSIZE = ${f.maxsize}\n)\nTO FILEGROUP [${f.filegroup}];\nGO`;
+        } else {
+          return `-- =================================================================\n-- SQL Server DBA Cockpit: ADD LOG FILE (.ldf)\n-- =================================================================\nUSE [master];\nGO\n\nALTER DATABASE [${f.database}]\nADD LOG FILE \n(\n    NAME = N'${f.logicalName}',\n    FILENAME = N'${f.physicalPath}',\n    SIZE = ${f.size},\n    FILEGROWTH = ${f.filegrowth},\n    MAXSIZE = ${f.maxsize}\n);\nGO`;
+        }
+      });
+
+      const shrink = ref({
+        database: 'Production_DB',
+        fileName: 'Prod_Data_01',
+        mode: 'TARGET',
+        targetSizeMb: 5000
+      });
+
+      const generatedShrinkSql = computed(() => {
+        const s = shrink.value;
+        if (s.mode === 'TRUNCATEONLY') {
+          return `-- Sadece dosya sonundaki kullanılmayan alanı OS'e iade et (Sayfa taşımaz, indeksi bozmaz)\nUSE [${s.database}];\nGO\nDBCC SHRINKFILE (N'${s.fileName}', TRUNCATEONLY);\nGO`;
+        } else if (s.mode === 'EMPTYFILE') {
+          return `-- Dosyadaki tüm veriyi aynı filegroup'taki diğer dosyalara taşı (Dosya silme hazırlığı)\nUSE [${s.database}];\nGO\nDBCC SHRINKFILE (N'${s.fileName}', EMPTYFILE);\nGO\n\n-- Veri taşındıktan sonra dosyayı veritabanından güvenle kaldır:\n-- ALTER DATABASE [${s.database}] REMOVE FILE [${s.fileName}];`;
+        } else {
+          return `-- DİKKAT: Sayfaları taşıyarak hedef boyuta küçültür (Ağır indeks fragmantasyonu yapar)\nUSE [${s.database}];\nGO\nDBCC SHRINKFILE (N'${s.fileName}', ${s.targetSizeMb});\nGO\n\n-- SHRINK sonrası zorunlu indeks rebuild önerisi:\n-- ALTER INDEX ALL ON [Kritik_Tablo] REBUILD WITH (ONLINE = ON);`;
+        }
+      });
+
+      const recModel = ref({
+        database: 'Production_DB',
+        model: 'FULL'
+      });
+
+      const generatedRecoveryModelSql = computed(() => {
+        const r = recModel.value;
+        let sql = `-- =================================================================\n-- SQL Server DBA Cockpit: RECOVERY MODEL DEĞİŞTİRME\n-- Veritabanı: [${r.database}] -> ${r.model}\n-- =================================================================\nUSE [master];\nGO\n\nALTER DATABASE [${r.database}] SET RECOVERY ${r.model} WITH NO_WAIT;\nGO\n`;
+        if (r.model === 'FULL') {
+          sql += `\n-- ZORUNLU ADIM: Log zincirini başlatmak için hemen bir FULL BACKUP alınmalıdır!\nBACKUP DATABASE [${r.database}]\nTO DISK = N'D:\\SQLBackups\\${r.database}_ChainStart_Full.bak'\nWITH FORMAT, INIT, COMPRESSION, CHECKSUM, STATS = 5;\nGO`;
+        }
+        return sql;
+      });
+
+      // =========================================================================
+      // MODULE 4: OTURUM YÖNETİMİ & KILL HELPER
+      // =========================================================================
+      const killSpid = ref(74);
+      const killDbTarget = ref('AdventureWorks2022');
+      const killIdleMins = ref(30);
+
+      const generatedInspectSpidSql = computed(() => {
+        const spid = killSpid.value || 0;
+        return `-- =================================================================\n-- SPID ${spid} Teşhis Sorgusu (Kill Etmeden Önce Ne Yaptığını Görün)\n-- =================================================================\nSELECT \n    s.session_id,\n    s.login_name,\n    s.host_name,\n    s.program_name,\n    r.status,\n    r.command,\n    r.wait_type,\n    r.wait_time / 1000.0 AS wait_time_sec,\n    r.cpu_time,\n    r.total_elapsed_time / 1000.0 AS elapsed_sec,\n    r.logical_reads,\n    r.open_transaction_count,\n    SUBSTRING(qt.text, (r.statement_start_offset/2)+1,\n        (((CASE r.statement_end_offset\n            WHEN -1 THEN DATALENGTH(qt.text)\n            ELSE r.statement_end_offset\n        END) - r.statement_start_offset)/2) + 1) AS current_executing_statement,\n    qt.text AS full_batch_text\nFROM sys.dm_exec_sessions s\nLEFT JOIN sys.dm_exec_requests r ON s.session_id = r.session_id\nOUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt\nWHERE s.session_id = ${spid};\nGO`;
+      });
+
+      const generatedSingleUserSql = computed(() => {
+        return `USE [master];\nGO\n-- Tüm aktif kullanıcı oturumlarını derhal sonlandırıp tek kullanıcıya al:\nALTER DATABASE [${killDbTarget.value}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\nGO`;
+      });
+
+      const generatedMultiUserSql = computed(() => {
+        return `USE [master];\nGO\n-- Veritabanını tekrar normal çok kullanıcılı erişime aç:\nALTER DATABASE [${killDbTarget.value}] SET MULTI_USER;\nGO`;
+      });
+
+      const generatedKillSleepingSql = computed(() => {
+        return `-- =================================================================\n-- ${killIdleMins.value} Dakikadan Uzun Süredir Uyuyan Açık Transaction'ları Kapat\n-- =================================================================\nDECLARE @sql NVARCHAR(MAX) = N'';\n\nSELECT @sql += N'KILL ' + CAST(s.session_id AS NVARCHAR(10)) + N'; ' + CHAR(13)\nFROM sys.dm_exec_sessions s\nJOIN sys.dm_tran_session_transactions t ON s.session_id = t.session_id\nWHERE s.is_user_process = 1\n  AND s.status = 'sleeping'\n  AND DATEDIFF(MINUTE, s.last_request_end_time, GETDATE()) > ${killIdleMins.value}\n  AND s.session_id <> @@SPID;\n\nPRINT @sql;\n-- Çalıştırmak için aşağıdaki satırın başındaki yorumu kaldırın:\n-- EXEC sp_executesql @sql;\nGO`;
+      });
+
+      // =========================================================================
+      // MODULE 5: ACİL DURUM & KRİTİK DMV DEPOSU
+      // =========================================================================
+      const dmvSearch = ref('');
+      const selectedDmvCat = ref('all');
+
+      const dmvCategories = [
+        { id: 'all', label: 'Tüm Sorgular (10)' },
+        { id: 'blocking', label: 'Kilitlenme & Deadlock' },
+        { id: 'performance', label: 'CPU & Disk I/O Darboğazı' },
+        { id: 'index', label: 'Index Fragmantasyon & Öneri' },
+        { id: 'storage', label: 'TempDB & VLF & Bellek' },
+        { id: 'alwayson', label: 'Always On Availability Groups' }
+      ];
+
+      const diagnosticQueries = [
+        {
+          id: 'blocking-tree',
+          category: 'blocking',
+          categoryLabel: 'Kilitlenme',
+          badgeClass: 'bg-rose-950 text-rose-300 border border-rose-800',
+          title: 'Blocking & Kilitlenme Ağacı (Kim Kimi Bekletiyor?)',
+          dmvUsed: 'sys.dm_exec_requests, sys.dm_os_waiting_tasks, sys.dm_exec_sessions',
+          description: 'Sunucudaki kilitlenme zincirini (blocking tree) net olarak tespit eder. Baş kilitleyici SPID kim, kilitlenen kaynak nedir, hangi SQL sorgusunda bekliyor?',
+          sql: `-- Kilitlenme Ağacı ve Bekleyen / Engelleyen Oturumlar\nSELECT \n    blocking.session_id AS BlockingSessionId,\n    blocked.session_id AS BlockedSessionId,\n    wait.wait_type AS WaitType,\n    wait.wait_duration_ms / 1000.0 AS WaitDurationSec,\n    wait.resource_description AS BlockedResource,\n    blocking_sess.login_name AS BlockingUser,\n    blocking_sess.host_name AS BlockingHost,\n    blocked_sess.login_name AS BlockedUser,\n    blocking_text.text AS BlockingSqlText,\n    blocked_text.text AS BlockedSqlText\nFROM sys.dm_exec_requests blocked\nJOIN sys.dm_os_waiting_tasks wait ON blocked.session_id = wait.session_id\nJOIN sys.dm_exec_requests blocking ON wait.blocking_session_id = blocking.session_id\nJOIN sys.dm_exec_sessions blocking_sess ON blocking.session_id = blocking_sess.session_id\nJOIN sys.dm_exec_sessions blocked_sess ON blocked.session_id = blocked_sess.session_id\nOUTER APPLY sys.dm_exec_sql_text(blocking.sql_handle) blocking_text\nOUTER APPLY sys.dm_exec_sql_text(blocked.sql_handle) blocked_text\nWHERE wait.blocking_session_id IS NOT NULL;\nGO`,
+          dbaNote: 'LCK_M_X (Exclusive Lock) veya LCK_M_IX beklemeleri genellikle unindexed foreign key veya devasa tek parça UPDATE/DELETE işlemlerinden kaynaklanır.'
+        },
+        {
+          id: 'deadlock-history',
+          category: 'blocking',
+          categoryLabel: 'Deadlock',
+          badgeClass: 'bg-rose-950 text-rose-300 border border-rose-800',
+          title: 'system_health Extended Event Üzerinden Deadlock Grafikleri',
+          dmvUsed: 'sys.fn_xe_file_target_read_file',
+          description: 'SQL Server varsayılan system_health oturumundaki ring_buffer veya xel dosyasını okuyarak son gerçekleşen kilitlenme (deadlock) XML grafiklerini çıkarır.',
+          sql: `-- Son Deadlock Olaylarını ve XML Grafiğini Getir\nSELECT \n    XEvent.value('(event/@timestamp)[1]', 'DATETIME2') AS DeadlockTime,\n    XEvent.query('(event/data[@name="xml_report"]/value/deadlock)[1]') AS DeadlockGraphXml\nFROM (\n    SELECT CAST(target_data AS XML) AS TargetData\n    FROM sys.dm_xe_session_targets st\n    JOIN sys.dm_xe_sessions s ON s.address = st.event_session_address\n    WHERE s.name = 'system_health' AND st.target_name = 'ring_buffer'\n) AS Data\nCROSS APPLY TargetData.nodes('RingBufferTarget/event[@name="xml_deadlock_report"]') AS XEventData(XEvent)\nORDER BY DeadlockTime DESC;\nGO`,
+          dbaNote: 'XML hücresine SSMS içerisinde tıkladığınızda otomatik olarak grafiksel deadlock şeması (.xdl) açılacaktır.'
+        },
+        {
+          id: 'top-cpu-queries',
+          category: 'performance',
+          categoryLabel: 'Performans',
+          badgeClass: 'bg-amber-950 text-amber-300 border border-amber-800',
+          title: 'En Çok CPU Tüketen Top 10 Sorgu (Worker Time)',
+          dmvUsed: 'sys.dm_exec_query_stats, sys.dm_exec_sql_text, sys.dm_exec_query_plan',
+          description: 'Sunucu açıldığından (veya plan cache temizlendiğinden) bu yana işlemciyi en çok yoran 10 sorguyu, çalıştırma sayılarını ve sorgu planlarını listeler.',
+          sql: `-- Top 10 CPU Tüketen Sorgular\nSELECT TOP 10\n    qs.total_worker_time / 1000.0 AS TotalCpuMs,\n    (qs.total_worker_time / qs.execution_count) / 1000.0 AS AvgCpuMs,\n    qs.execution_count AS ExecCount,\n    qs.total_elapsed_time / 1000.0 AS TotalDurationMs,\n    (qs.total_elapsed_time / qs.execution_count) / 1000.0 AS AvgDurationMs,\n    SUBSTRING(qt.text, (qs.statement_start_offset/2)+1,\n        (((CASE qs.statement_end_offset\n            WHEN -1 THEN DATALENGTH(qt.text)\n            ELSE qs.statement_end_offset\n        END) - qs.statement_start_offset)/2) + 1) AS ExecutingStatement,\n    qp.query_plan AS QueryPlanXml\nFROM sys.dm_exec_query_stats qs\nCROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt\nCROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) qp\nORDER BY qs.total_worker_time DESC;\nGO`,
+          dbaNote: 'AvgCpuMs değeri çok yüksek olan sorgular genellikle CPU-heavy skaler fonksiyonlar (UDF) veya karmaşık hash join içeren sorgulardır.'
+        },
+        {
+          id: 'top-io-queries',
+          category: 'performance',
+          categoryLabel: 'Performans',
+          badgeClass: 'bg-amber-950 text-amber-300 border border-amber-800',
+          title: 'En Çok Disk / Bellek I/O (Logical Reads) Yapan Top 10 Sorgu',
+          dmvUsed: 'sys.dm_exec_query_stats',
+          description: 'Buffer pool (RAM) ve disk üzerinden milyonlarca sayfa okuyarak önbelleği kirleten (cache churn) sorguları tespit eder.',
+          sql: `-- Top 10 Mantıksal Okuma (Logical Reads) Yapan Ağır Sorgular\nSELECT TOP 10\n    qs.total_logical_reads AS TotalLogicalReads,\n    qs.total_logical_reads / qs.execution_count AS AvgLogicalReads,\n    qs.execution_count AS ExecCount,\n    qs.total_physical_reads AS TotalPhysicalReads,\n    qs.total_logical_writes AS TotalWrites,\n    SUBSTRING(qt.text, (qs.statement_start_offset/2)+1,\n        (((CASE qs.statement_end_offset\n            WHEN -1 THEN DATALENGTH(qt.text)\n            ELSE qs.statement_end_offset\n        END) - qs.statement_start_offset)/2) + 1) AS QueryText\nFROM sys.dm_exec_query_stats qs\nCROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt\nORDER BY qs.total_logical_reads DESC;\nGO`,
+          dbaNote: 'Yüksek logical reads neredeyse her zaman Index Scan (Table Scan) yapıldığını ve uygun bir Covering Index eksikliğini gösterir.'
+        },
+        {
+          id: 'index-frag-rebuild',
+          category: 'index',
+          categoryLabel: 'İndeks & Bakım',
+          badgeClass: 'bg-emerald-950 text-emerald-300 border border-emerald-800',
+          title: 'İndeks Fragmantasyon Analizi & Otomatik Rebuild/Reorganize Üretici',
+          dmvUsed: 'sys.dm_db_index_physical_stats, sys.indexes',
+          description: 'Geçerli veritabanındaki indeks parçalanma oranını analiz eder; %30 üzeri için REBUILD, %10-%30 arası için REORGANIZE T-SQL komutları üretir.',
+          sql: `-- Otomatik Index Bakım Script Üretici (Fragmantasyon > %10)\nSELECT \n    SCHEMA_NAME(t.schema_id) AS SchemaName,\n    t.name AS TableName,\n    i.name AS IndexName,\n    ips.avg_fragmentation_in_percent AS FragPercent,\n    ips.page_count AS PageCount,\n    CASE \n        WHEN ips.avg_fragmentation_in_percent > 30.0 \n        THEN 'ALTER INDEX [' + i.name + '] ON [' + SCHEMA_NAME(t.schema_id) + '].[' + t.name + '] REBUILD WITH (ONLINE = ON, MAXDOP = 4, SORT_IN_TEMPDB = ON);'\n        WHEN ips.avg_fragmentation_in_percent BETWEEN 10.0 AND 30.0 \n        THEN 'ALTER INDEX [' + i.name + '] ON [' + SCHEMA_NAME(t.schema_id) + '].[' + t.name + '] REORGANIZE;'\n    END AS GeneratedMaintenanceSql\nFROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ips\nJOIN sys.tables t ON ips.object_id = t.object_id\nJOIN sys.indexes i ON ips.object_id = i.object_id AND ips.index_id = i.index_id\nWHERE ips.page_count > 1000 -- Küçük indeksler parçalansa da önemsizdir\n  AND ips.avg_fragmentation_in_percent > 10.0\nORDER BY ips.avg_fragmentation_in_percent DESC;\nGO`,
+          dbaNote: '1000 sayfadan küçük tablolarda fragmantasyon %90 dahi olsa SQL Server sayfaları tek bir extent içinde tuttuğundan rebuild etmeye gerek yoktur.'
+        },
+        {
+          id: 'missing-indexes',
+          category: 'index',
+          categoryLabel: 'İndeks & Bakım',
+          badgeClass: 'bg-emerald-950 text-emerald-300 border border-emerald-800',
+          title: 'En Yüksek Etkili Eksik İndeksler (Missing Indexes DMV)',
+          dmvUsed: 'sys.dm_db_missing_index_details, sys.dm_db_missing_index_groups, sys.dm_db_missing_index_group_stats',
+          description: 'Sorgu optimizatörünün eksikliğini hissettiği, performans kazanç potansiyeli (improvement measure) en yüksek hazır CREATE INDEX scriptlerini üretir.',
+          sql: `-- Eksik İndeksleri ve Hazır CREATE INDEX DDL Scriptlerini Getir\nSELECT TOP 20\n    ROUND(migs.avg_total_user_cost * migs.avg_user_impact * (migs.user_seeks + migs.user_scans), 0) AS ImprovementScore,\n    migs.user_seeks AS Seeks,\n    migs.user_scans AS Scans,\n    mid.statement AS TableName,\n    'CREATE NONCLUSTERED INDEX [IX_' + REPLACE(REPLACE(REPLACE(REPLACE(mid.statement, '[', ''), ']', ''), '.', '_'), ' ', '') + '_' + CAST(migs.group_handle AS VARCHAR(10)) + '] ON ' + \n    mid.statement + ' (' + ISNULL(mid.equality_columns, '') + \n    CASE WHEN mid.equality_columns IS NOT NULL AND mid.inequality_columns IS NOT NULL THEN ', ' ELSE '' END + \n    ISNULL(mid.inequality_columns, '') + ')' + \n    ISNULL(' INCLUDE (' + mid.included_columns + ')', '') + ' WITH (ONLINE = ON, FILLFACTOR = 90);' AS CreateIndexScript\nFROM sys.dm_db_missing_index_groups mig\nJOIN sys.dm_db_missing_index_group_stats migs ON migs.group_handle = mig.index_group_handle\nJOIN sys.dm_db_missing_index_details mid ON mig.index_handle = mid.index_handle\nWHERE mid.database_id = DB_ID()\nORDER BY ImprovementScore DESC;\nGO`,
+          dbaNote: 'Her önerilen indeksi doğrudan oluşturmayın! Benzer mevcut indekslerle birleştirin (consolidate edin), aksi halde INSERT/UPDATE performansı yavaşlar.'
+        },
+        {
+          id: 'tempdb-hogs',
+          category: 'storage',
+          categoryLabel: 'Depolama',
+          badgeClass: 'bg-purple-950 text-purple-300 border border-purple-800',
+          title: 'TempDB Alanını Şişiren Sorgular ve Oturumlar',
+          dmvUsed: 'sys.dm_db_task_space_usage, sys.dm_exec_sessions, sys.dm_exec_requests',
+          description: 'TempDB diskini dolduran geçici tablo (#temp) kullanıcı nesnelerini ve sort/hash join dökülmelerini (internal objects) hangi SPID\'nin yarattığını bulur.',
+          sql: `-- TempDB Tüketimini SPID Bazında Analiz Et\nSELECT \n    t.session_id,\n    s.login_name,\n    s.host_name,\n    (t.user_objects_alloc_page_count * 8) / 1024.0 AS UserObjectsAllocMB,\n    (t.internal_objects_alloc_page_count * 8) / 1024.0 AS InternalObjectsAllocMB,\n    r.command,\n    r.status,\n    qt.text AS CurrentQueryText\nFROM sys.dm_db_task_space_usage t\nJOIN sys.dm_exec_sessions s ON t.session_id = s.session_id\nLEFT JOIN sys.dm_exec_requests r ON t.session_id = r.session_id\nOUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt\nWHERE (t.user_objects_alloc_page_count + t.internal_objects_alloc_page_count) > 128 -- > 1 MB\nORDER BY (t.user_objects_alloc_page_count + t.internal_objects_alloc_page_count) DESC;\nGO`,
+          dbaNote: 'Internal objects allocation yüksekse sorgular yetersiz memory grant sebebiyle diske (tempdb worktable) dökülüyor (spill to tempdb) demektir.'
+        },
+        {
+          id: 'vlf-count',
+          category: 'storage',
+          categoryLabel: 'Depolama',
+          badgeClass: 'bg-purple-950 text-purple-300 border border-purple-800',
+          title: 'Sanal Log Dosyası (VLF) Parçalanması Analizi',
+          dmvUsed: 'sys.dm_db_log_info',
+          description: 'Transaction log dosyasındaki VLF sayısını raporlar. 1000\'den fazla VLF veritabanı başlangıcını (recovery) ve yedekleme hızını ciddi şekilde geciktirir.',
+          sql: `-- Veritabanı VLF Sayısını Kontrol Et (SQL Server 2014+)\nSELECT \n    DB_NAME(d.database_id) AS DatabaseName,\n    COUNT(li.vlf_sequence_number) AS VlfCount,\n    SUM(CAST(li.vlf_size_mb AS DECIMAL(10,2))) AS TotalLogSizeMB\nFROM sys.databases d\nCROSS APPLY sys.dm_db_log_info(d.database_id) li\nGROUP BY d.database_id\nORDER BY VlfCount DESC;\nGO`,
+          dbaNote: 'Eğer VlfCount > 1000 ise: Log dosyasını shrink edin ve ardından tek seferde büyük bir adımla (örn: 8192 MB) yeniden büyütün.'
+        },
+        {
+          id: 'alwayson-sync',
+          category: 'alwayson',
+          categoryLabel: 'Always On',
+          badgeClass: 'bg-cyan-950 text-cyan-300 border border-cyan-800',
+          title: 'Always On Replikasyon Senkronizasyon Sağlığı & Kuyruk Lag',
+          dmvUsed: 'sys.dm_hadr_database_replica_states, sys.dm_hadr_availability_replica_states',
+          description: 'Always On replikalarında ikincil sunuculara giden veri kuyruğunu (log send queue) ve yeniden yürütme kuyruğunu (redo queue) canlı izler.',
+          sql: `-- Always On Replikasyon Durumu ve Veri Gecikmesi (Lag)\nSELECT \n    ag.name AS AgName,\n    ar.replica_server_name AS ReplicaServer,\n    d.name AS DatabaseName,\n    rs.synchronization_state_desc AS SyncState,\n    rs.synchronization_health_desc AS HealthDesc,\n    rs.log_send_queue_size AS LogSendQueueKB,\n    rs.redo_queue_size AS RedoQueueKB,\n    rs.redo_rate AS RedoRateKBperSec,\n    rs.secondary_lag_seconds AS SecondaryLagSeconds\nFROM sys.dm_hadr_database_replica_states rs\nJOIN sys.availability_replicas ar ON rs.replica_id = ar.replica_id\nJOIN sys.availability_groups ag ON ar.group_id = ag.group_id\nJOIN sys.databases d ON rs.database_id = d.database_id\nORDER BY rs.log_send_queue_size DESC;\nGO`,
+          dbaNote: 'LogSendQueueKB yüksekse network darboğazı; RedoQueueKB yüksekse ikincil replika disk I/O darboğazı yaşıyor demektir.'
+        },
+        {
+          id: 'wait-stats',
+          category: 'performance',
+          categoryLabel: 'Performans',
+          badgeClass: 'bg-amber-950 text-amber-300 border border-amber-800',
+          title: 'Filtrelenmiş Sunucu Bekleme İstatistikleri (Top Wait Stats)',
+          dmvUsed: 'sys.dm_os_wait_stats',
+          description: 'Arka plan zararsız beklemeleri (CXCONSUMER, DIRTY_PAGE_FLUSH vb.) hariç tutarak SQL Server\'ın asıl neyi beklediğini net gösterir.',
+          sql: `-- Temizlenmiş Top 10 Bekleme İstatistiği (Wait Stats)\nWITH Waits AS (\n    SELECT \n        wait_type,\n        wait_time_ms / 1000.0 AS WaitTimeSec,\n        waiting_tasks_count,\n        ROW_NUMBER() OVER(ORDER BY wait_time_ms DESC) AS RowNum,\n        100.0 * wait_time_ms / SUM(wait_time_ms) OVER() AS Pct\n    FROM sys.dm_os_wait_stats\n    WHERE wait_type NOT IN (\n        'CLR_SEMAPHORE', 'LAZYWRITER_SLEEP', 'RESOURCE_QUEUE', 'SLEEP_TASK',\n        'SLEEP_SYSTEMTASK', 'SQLTRACE_BUFFER_FLUSH', 'WAITFOR', 'LOGMGR_QUEUE',\n        'CHECKPOINT_QUEUE', 'REQUEST_FOR_DEADLOCK_SEARCH', 'XE_TIMER_EVENT',\n        'BROKER_TO_FLUSH', 'BROKER_TASK_STOP', 'CLR_MANUAL_EVENT',\n        'CLR_AUTO_EVENT', 'DISPATCHER_QUEUE_SEMAPHORE', 'FT_IFTS_SCHEDULER_IDLE_WAIT',\n        'XE_DISPATCHER_WAIT', 'XE_DISPATCHER_JOIN', 'SQLTRACE_INCREMENTAL_FLUSH_SLEEP',\n        'DIRTY_PAGE_FLUSH', 'CXCONSUMER', 'HADR_FILESTREAM_IOMGR_IOCOMPLETION'\n    )\n)\nSELECT TOP 10\n    wait_type,\n    WaitTimeSec,\n    waiting_tasks_count,\n    CAST(Pct AS DECIMAL(5,2)) AS PercentOfTotalWaits\nFROM Waits\nORDER BY WaitTimeSec DESC;\nGO`,
+          dbaNote: 'PAGEIOLATCH_* disk darboğazı, CXPACKET paralellik/MAXDOP sorunu, SOS_SCHEDULER_YIELD ise CPU darboğazına işaret eder.'
+        }
+      ];
+
+      const filteredDmvQueries = computed(() => {
+        let list = diagnosticQueries;
+        if (selectedDmvCat.value !== 'all') {
+          list = list.filter(q => q.category === selectedDmvCat.value);
+        }
+        if (dmvSearch.value.trim()) {
+          const s = dmvSearch.value.toLowerCase();
+          list = list.filter(q => 
+            q.title.toLowerCase().includes(s) || 
+            q.description.toLowerCase().includes(s) || 
+            q.dmvUsed.toLowerCase().includes(s) ||
+            q.sql.toLowerCase().includes(s)
+          );
+        }
+        return list;
+      });
+
+      // =========================================================================
+      // MODULE 6: CONNECTION STRING & BAĞLANTI FORMATLAYICI
+      // =========================================================================
+      const cn = ref({
+        host: 'sqlserver.company.local',
+        port: 1433,
+        instance: '',
+        database: 'Production_DB',
+        authType: 'SQL',
+        user: 'sa',
+        password: 'Passw0rdStrong!',
+        encrypt: true,
+        trustServerCert: true,
+        readOnlyIntent: false,
+        multiSubnet: false
+      });
+
+      const activeConnFormat = ref('adonet');
+
+      const connectionFormats = [
+        { id: 'adonet', label: 'ADO.NET / C#' },
+        { id: 'sqlcmd', label: 'SQLCMD CLI' },
+        { id: 'jdbc', label: 'Java / JDBC' },
+        { id: 'pyodbc', label: 'Python (pyodbc)' },
+        { id: 'pymssql', label: 'Python (pymssql)' },
+        { id: 'nodejs', label: 'Node.js (mssql)' },
+        { id: 'powershell', label: 'PowerShell' },
+        { id: 'appsettings', label: 'appsettings.json' }
+      ];
+
+      const activeConnFormatTitle = computed(() => {
+        const f = connectionFormats.find(x => x.id === activeConnFormat.value);
+        return f ? f.label : '';
+      });
+
+      const serverDataSource = computed(() => {
+        const c = cn.value;
+        let s = c.host;
+        if (c.instance) s += '\\' + c.instance;
+        if (c.port && c.port !== 1433) s += ',' + c.port;
+        return s;
+      });
+
+      const activeConnCode = computed(() => {
+        const c = cn.value;
+        const s = serverDataSource.value;
+        const enc = c.encrypt ? 'True' : 'False';
+        const trust = c.trustServerCert ? 'True' : 'False';
+        const intent = c.readOnlyIntent ? ';ApplicationIntent=ReadOnly' : '';
+        const multi = c.multiSubnet ? ';MultiSubnetFailover=True' : '';
+
+        if (activeConnFormat.value === 'adonet') {
+          if (c.authType === 'SQL') {
+            return `Server=${s};Database=${c.database};User Id=${c.user};Password=${c.password};Encrypt=${enc};TrustServerCertificate=${trust}${intent}${multi};Connection Timeout=30;`;
+          } else if (c.authType === 'WINDOWS') {
+            return `Server=${s};Database=${c.database};Integrated Security=SSPI;Encrypt=${enc};TrustServerCertificate=${trust}${intent}${multi};`;
+          } else {
+            return `Server=${s};Database=${c.database};Authentication=Active Directory Interactive;Encrypt=${enc};TrustServerCertificate=${trust}${intent}${multi};`;
+          }
+        } else if (activeConnFormat.value === 'sqlcmd') {
+          let authPart = c.authType === 'WINDOWS' ? '-E' : `-U "${c.user}" -P "${c.password}"`;
+          let trustFlag = c.trustServerCert ? '-C' : '';
+          let readFlag = c.readOnlyIntent ? '-K ReadOnly' : '';
+          let multiFlag = c.multiSubnet ? '-M' : '';
+          return `sqlcmd -S "${s}" -d "${c.database}" ${authPart} ${trustFlag} ${readFlag} ${multiFlag}`.replace(/\s+/g, ' ').trim();
+        } else if (activeConnFormat.value === 'jdbc') {
+          let authParams = c.authType === 'WINDOWS' ? 'integratedSecurity=true;' : `user=${c.user};password=${c.password};`;
+          return `jdbc:sqlserver://${c.host}:${c.port};databaseName=${c.database};${authParams}encrypt=${c.encrypt};trustServerCertificate=${c.trustServerCert};${c.readOnlyIntent ? 'applicationIntent=ReadOnly;' : ''}${c.multiSubnet ? 'multiSubnetFailover=true;' : ''}`;
+        } else if (activeConnFormat.value === 'pyodbc') {
+          let auth = c.authType === 'WINDOWS' ? 'Trusted_Connection=yes;' : `UID=${c.user};PWD=${c.password};`;
+          return `import pyodbc
+
+conn_str = (
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=${s};"
+    "DATABASE=${c.database};"
+    "${auth}"
+    "Encrypt=${c.encrypt ? 'yes' : 'no'};"
+    "TrustServerCertificate=${c.trustServerCert ? 'yes' : 'no'};"
+)
+conn = pyodbc.connect(conn_str)
+cursor = conn.cursor()
+cursor.execute("SELECT @@VERSION")
+print(cursor.fetchone()[0])`;
+        } else if (activeConnFormat.value === 'pymssql') {
+          return `import pymssql
+
+conn = pymssql.connect(
+    server='${c.host}',
+    port=${c.port},
+    user='${c.user}',
+    password='${c.password}',
+    database='${c.database}'
+)
+cursor = conn.cursor()
+cursor.execute('SELECT @@VERSION')
+row = cursor.fetchone()
+print(row[0])
+conn.close()`;
+        } else if (activeConnFormat.value === 'nodejs') {
+          return `const sql = require('mssql');
+
+const config = {
+  user: '${c.user}',
+  password: '${c.password}',
+  server: '${c.host}',
+  port: ${c.port},
+  database: '${c.database}',
+  options: {
+    encrypt: ${c.encrypt},
+    trustServerCertificate: ${c.trustServerCert},
+    readOnlyIntent: ${c.readOnlyIntent}
+  }
+};
+
+async function testConnection() {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query('SELECT @@VERSION as version');
+    console.log(result.recordset[0].version);
+  } catch (err) {
+    console.error('Bağlantı hatası:', err);
+  }
+}
+testConnection();`;
+        } else if (activeConnFormat.value === 'powershell') {
+          let authParam = c.authType === 'WINDOWS' ? '' : ` -Username "${c.user}" -Password "${c.password}"`;
+          return `# SqlServer modülü kullanarak sorgu çalıştırma:\nInvoke-Sqlcmd -ServerInstance "${s}" -Database "${c.database}"${authParam} -Query "SELECT @@VERSION AS Version" -TrustServerCertificate`;
+        } else if (activeConnFormat.value === 'appsettings') {
+          let cs = `Server=${s};Database=${c.database};User Id=${c.user};Password=${c.password};Encrypt=${enc};TrustServerCertificate=${trust}${intent};`;
+          return `{\n  "ConnectionStrings": {\n    "DefaultConnection": "${cs}"\n  }\n}`;
+        }
+        return '';
+      });
+
+      // =========================================================================
+      // MODULE 7: MAX SERVER MEMORY & MAXDOP CALCULATOR
+      // =========================================================================
+      const tune = ref({
+        ramGb: 64,
+        instanceCount: 1,
+        hasOtherServices: false,
+        logicalCores: 16,
+        numaNodes: 2,
+        hyperThreading: true,
+        costThreshold: 50
+      });
+
+      // Jonathan Kehayias / Microsoft memory formula
+      const calculatedMemory = computed(() => {
+        const total = tune.value.ramGb;
+        let osReserved = 1; // 1 GB for OS
+
+        if (total <= 4) {
+          osReserved = 1;
+        } else if (total <= 16) {
+          osReserved += Math.floor((total - 4) / 4);
+        } else {
+          // 4 to 16 GB: 1 GB per 4 GB = 3 GB
+          osReserved += 3;
+          // above 16 GB: 1 GB per 8 GB
+          osReserved += Math.floor((total - 16) / 8);
+        }
+
+        if (tune.value.hasOtherServices) {
+          osReserved += 4; // Add 4 GB for SSIS/SSRS or other processes
+        }
+
+        let sqlMaxGb = Math.max(2, total - osReserved);
+        if (tune.value.instanceCount > 1) {
+          sqlMaxGb = Math.floor(sqlMaxGb / tune.value.instanceCount);
+        }
+
+        const sqlMaxMb = sqlMaxGb * 1024;
+        const osPercent = Math.round((osReserved / total) * 100);
+        const sqlPercent = 100 - osPercent;
+
+        return {
+          totalGb: total,
+          osReservedGb: osReserved,
+          sqlMaxGb: sqlMaxGb,
+          sqlMaxMb: sqlMaxMb,
+          osPercent: osPercent,
+          sqlPercent: sqlPercent
+        };
+      });
+
+      // Official Microsoft MAXDOP guidelines algorithm
+      const calculatedMaxdop = computed(() => {
+        const cores = tune.value.logicalCores;
+        const nodes = Math.max(1, tune.value.numaNodes);
+        const coresPerNode = Math.floor(cores / nodes);
+
+        let val = 8;
+        let reason = '';
+
+        if (nodes === 1) {
+          if (cores <= 8) {
+            val = cores;
+            reason = '1 NUMA düğümünde <= 8 çekirdek: MAXDOP = Çekirdek Sayısı';
+          } else {
+            val = 8;
+            reason = '1 NUMA düğümünde > 8 çekirdek: MAXDOP = 8 (Tavsiye edilen üst sınır)';
+          }
+        } else {
+          // Multiple NUMA nodes
+          if (coresPerNode <= 8) {
+            val = coresPerNode;
+            reason = `Çoklu NUMA (${nodes} düğüm) ve düğüm başına ${coresPerNode} çekirdek: MAXDOP = Düğüm Başına Çekirdek`;
+          } else {
+            val = 8;
+            reason = `Çoklu NUMA (${nodes} düğüm) ve düğüm başına > 8 çekirdek: MAXDOP = 8`;
+          }
+        }
+
+        return { val, reason };
+      });
+
+      const generatedTuningSql = computed(() => {
+        const m = calculatedMemory.value;
+        const d = calculatedMaxdop.value;
+        const t = tune.value;
+
+        return `-- =================================================================
+-- SQL Server DBA Cockpit: Donanım ve Performans Optimizasyonu
+-- Donanım: ${t.ramGb} GB RAM | ${t.logicalCores} vCPU | ${t.numaNodes} NUMA Düğümü
+-- Gerekçe: ${d.reason}
+-- =================================================================
+USE [master];
+GO
+
+-- 1. Gelişmiş seçenekleri etkinleştir
+EXEC sys.sp_configure N'show advanced options', N'1';
+RECONFIGURE WITH OVERRIDE;
+GO
+
+-- 2. Max Server Memory Ayarı (${m.sqlMaxGb} GB / ${m.sqlMaxMb} MB)
+-- İşletim sistemi ve arka plan için ${m.osReservedGb} GB ayrılmıştır.
+EXEC sys.sp_configure N'max server memory (MB)', N'${m.sqlMaxMb}';
+RECONFIGURE WITH OVERRIDE;
+GO
+
+-- 3. MAXDOP (Max Degree of Parallelism) Optimizasyonu
+EXEC sys.sp_configure N'max degree of parallelism', N'${d.val}';
+GO
+
+-- 4. Cost Threshold for Parallelism (Varsayılan 5 yerine ${t.costThreshold})
+EXEC sys.sp_configure N'cost threshold for parallelism', N'${t.costThreshold}';
+RECONFIGURE WITH OVERRIDE;
+GO
+
+-- Yapılandırmayı doğrula:
+SELECT name, value_in_use, description 
+FROM sys.configurations
+WHERE name IN ('max server memory (MB)', 'max degree of parallelism', 'cost threshold for parallelism');
+GO`;
+      });
+
+      // Global Reset
+      const resetCurrentModule = () => {
+        if (activeTab.value === 'backup') {
+          bk.value.database = 'AdventureWorks2022';
+          bk.value.type = 'FULL';
+          bk.value.path = 'D:\\SQLBackups\\AdventureWorks2022_Full.bak';
+          addToast('Backup modülü varsayılanlara döndürüldü.');
+        } else if (activeTab.value === 'users') {
+          sec.value.username = 'app_service_user';
+          sec.value.database = 'Production_DB';
+          applyRolePreset('readonly');
+          generateSecurePassword();
+          addToast('Güvenlik modülü sıfırlandı.');
+        } else if (activeTab.value === 'tuning') {
+          tune.value.ramGb = 64;
+          tune.value.logicalCores = 16;
+          tune.value.numaNodes = 2;
+          tune.value.costThreshold = 50;
+          addToast('Tuning parametreleri sıfırlandı.');
+        } else {
+          addToast('Modül varsayılanlara döndürüldü.');
+        }
+      };
+
+      onMounted(() => {
+        generateSecurePassword();
+      });
+
+      return {
+        activeTab,
+        tabs,
+        showCheatSheet,
+        toasts,
+        addToast,
+        copyText,
+        downloadScript,
+        resetCurrentModule,
+
+        // Backup
+        backupSubTab,
+        bk,
+        autoGenerateBackupPath,
+        generatedBackupSql,
+        rs,
+        addMoveFile,
+        removeMoveFile,
+        generatedRestoreSql,
+        bcp,
+        generatedBcpCommand,
+
+        // Security
+        rolePreset,
+        sec,
+        generateSecurePassword,
+        applyRolePreset,
+        generatedSecuritySql,
+
+        // Storage
+        storageSubTab,
+        stFile,
+        generatedAddFileSql,
+        shrink,
+        generatedShrinkSql,
+        recModel,
+        generatedRecoveryModelSql,
+
+        // Sessions
+        killSpid,
+        killDbTarget,
+        killIdleMins,
+        generatedInspectSpidSql,
+        generatedSingleUserSql,
+        generatedMultiUserSql,
+        generatedKillSleepingSql,
+
+        // DMV
+        dmvSearch,
+        selectedDmvCat,
+        dmvCategories,
+        filteredDmvQueries,
+
+        // Connection
+        cn,
+        activeConnFormat,
+        connectionFormats,
+        activeConnFormatTitle,
+        activeConnCode,
+
+        // Tuning
+        tune,
+        calculatedMemory,
+        calculatedMaxdop,
+        generatedTuningSql
+      };
+    }
+  }).mount('#app');
+</script>
+
+</body>
+</html>
